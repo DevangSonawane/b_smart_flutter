@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/wallet_service.dart';
 import '../models/wallet_model.dart';
+import '../theme/instagram_theme.dart';
 
 class CoinsHistoryScreen extends StatefulWidget {
   const CoinsHistoryScreen({super.key});
@@ -83,8 +84,8 @@ class _CoinsHistoryScreenState extends State<CoinsHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Coins History'),
-        backgroundColor: Colors.amber,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: Column(
         children: [

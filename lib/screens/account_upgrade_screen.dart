@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_account_model.dart';
 import '../services/user_account_service.dart';
+import '../theme/instagram_theme.dart';
 
 class AccountUpgradeScreen extends StatelessWidget {
   const AccountUpgradeScreen({super.key});
@@ -13,6 +14,8 @@ class AccountUpgradeScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Upgrade Account'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

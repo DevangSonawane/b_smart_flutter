@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import '../models/reel_model.dart';
 import '../services/reels_service.dart';
+import '../services/boost_service.dart';
+import '../services/user_account_service.dart';
+import '../models/user_account_model.dart';
+import '../theme/instagram_theme.dart';
 import 'profile_screen.dart';
 import 'reel_comments_screen.dart';
 import 'reel_remix_screen.dart';
+import 'boost_post_screen.dart';
 import 'report_content_screen.dart';
 
 class ReelsScreen extends StatefulWidget {
@@ -131,31 +136,56 @@ class _ReelsScreenState extends State<ReelsScreen> {
     
     showModalBottomSheet(
       context: context,
+      backgroundColor: InstagramTheme.surfaceWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.link),
-              title: const Text('Copy Link'),
+              leading: const Icon(Icons.link, color: InstagramTheme.textBlack),
+              title: Text(
+                'Copy Link',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Link copied to clipboard')),
+                  SnackBar(
+                    content: const Text('Link copied to clipboard'),
+                    backgroundColor: InstagramTheme.surfaceWhite,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('Share via...'),
+              leading: const Icon(Icons.share, color: InstagramTheme.textBlack),
+              title: Text(
+                'Share via...',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               onTap: () {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Share sheet opened')),
+                  SnackBar(
+                    content: const Text('Share sheet opened'),
+                    backgroundColor: InstagramTheme.surfaceWhite,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 );
               },
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -171,15 +201,22 @@ class _ReelsScreenState extends State<ReelsScreen> {
     final reel = _reels[_currentIndex];
     showModalBottomSheet(
       context: context,
+      backgroundColor: InstagramTheme.surfaceWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             if (reel.isSponsored)
               ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text('View Ad Details'),
+                leading: const Icon(Icons.info_outline, color: InstagramTheme.textBlack),
+                title: Text(
+                  'View Ad Details',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _showAdDetails(reel);
@@ -187,8 +224,11 @@ class _ReelsScreenState extends State<ReelsScreen> {
               ),
             if (reel.remixEnabled)
               ListTile(
-                leading: const Icon(Icons.shuffle),
-                title: const Text('Remix this Reel'),
+                leading: const Icon(Icons.shuffle, color: InstagramTheme.textBlack),
+                title: Text(
+                  'Remix this Reel',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _handleRemix(reel);
@@ -196,31 +236,83 @@ class _ReelsScreenState extends State<ReelsScreen> {
               ),
             if (reel.audioReuseEnabled)
               ListTile(
-                leading: const Icon(Icons.music_note),
-                title: const Text('Use this Audio'),
+                leading: const Icon(Icons.music_note, color: InstagramTheme.textBlack),
+                title: Text(
+                  'Use this Audio',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _handleUseAudio(reel);
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.not_interested),
-              title: const Text('Not Interested'),
+              leading: const Icon(Icons.trending_up, color: InstagramTheme.textBlack),
+              title: Text(
+                'Boost Reel',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               onTap: () {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('We\'ll show you less like this')),
+                final accountService = UserAccountService();
+                final currentAccount = accountService.getCurrentAccount();
+                if (currentAccount.accountType == AccountType.regular) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Only Creator and Business accounts can boost content'),
+                      backgroundColor: InstagramTheme.errorRed,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                  return;
+                }
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => BoostPostScreen(
+                      postId: reel.id,
+                      contentType: 'reel',
+                    ),
+                  ),
                 );
               },
             ),
             ListTile(
-              leading: const Icon(Icons.report),
-              title: const Text('Report'),
+              leading: const Icon(Icons.not_interested, color: InstagramTheme.textBlack),
+              title: Text(
+                'Not Interested',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('We\'ll show you less like this'),
+                    backgroundColor: InstagramTheme.surfaceWhite,
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.report, color: InstagramTheme.errorRed),
+              title: Text(
+                'Report',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: InstagramTheme.errorRed,
+                ),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 _handleReport(reel);
               },
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -230,24 +322,52 @@ class _ReelsScreenState extends State<ReelsScreen> {
   void _showAdDetails(Reel reel) {
     showDialog(
       context: context,
+      barrierColor: InstagramTheme.backgroundWhite.withValues(alpha: 0.7),
       builder: (context) => AlertDialog(
-        title: Text('Ad Details - ${reel.sponsorBrand}'),
+        backgroundColor: InstagramTheme.surfaceWhite,
+        title: Text(
+          'Ad Details - ${reel.sponsorBrand}',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Brand: ${reel.sponsorBrand ?? 'N/A'}'),
+            Text(
+              'Brand: ${reel.sponsorBrand ?? 'N/A'}',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
             if (reel.productTags != null && reel.productTags!.isNotEmpty) ...[
               const SizedBox(height: 16),
-              const Text('Products:', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                'Products:',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               ...reel.productTags!.map((tag) => ListTile(
-                leading: const Icon(Icons.shopping_bag),
-                title: Text(tag.name),
-                subtitle: tag.price != null ? Text('${tag.currency ?? '\$'}${tag.price}') : null,
+                leading: const Icon(Icons.shopping_bag, color: InstagramTheme.primaryPink),
+                title: Text(
+                  tag.name,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                subtitle: tag.price != null
+                    ? Text(
+                        '${tag.currency ?? '\$'}${tag.price}',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      )
+                    : null,
                 onTap: () {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Opening ${tag.externalUrl}')),
+                    SnackBar(
+                      content: Text('Opening ${tag.externalUrl}'),
+                      backgroundColor: InstagramTheme.surfaceWhite,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   );
                 },
               )),
@@ -292,12 +412,17 @@ class _ReelsScreenState extends State<ReelsScreen> {
   Widget build(BuildContext context) {
     if (_reels.isEmpty) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: InstagramTheme.backgroundWhite,
+        body: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(InstagramTheme.primaryPink),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: InstagramTheme.backgroundWhite,
       body: GestureDetector(
         onVerticalDragEnd: (details) {
           if (details.primaryVelocity != null) {
@@ -341,12 +466,12 @@ class _ReelsScreenState extends State<ReelsScreen> {
               right: 0,
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon: const Icon(Icons.arrow_back, color: InstagramTheme.textBlack, size: 24),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Row(
@@ -354,13 +479,17 @@ class _ReelsScreenState extends State<ReelsScreen> {
                           IconButton(
                             icon: Icon(
                               _isMuted ? Icons.volume_off : Icons.volume_up,
-                              color: Colors.white,
+                              color: InstagramTheme.textBlack,
+                              size: 24,
                             ),
                             onPressed: _toggleMute,
                           ),
+                          const SizedBox(width: 8),
                           Text(
                             '${_currentIndex + 1} / ${_reels.length}',
-                            style: const TextStyle(color: Colors.white),
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ],
                       ),
@@ -373,16 +502,24 @@ class _ReelsScreenState extends State<ReelsScreen> {
             // Right Side Actions
             Positioned(
               right: 16,
-              bottom: 100,
-              child: _buildRightActions(),
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                minimum: const EdgeInsets.only(bottom: 80),
+                child: _buildRightActions(),
+              ),
             ),
 
             // Bottom Left Metadata
             Positioned(
               left: 16,
-              bottom: 120,
+              bottom: 0,
               right: 100,
-              child: _buildBottomMetadata(),
+              child: SafeArea(
+                top: false,
+                minimum: const EdgeInsets.only(bottom: 80),
+                child: _buildBottomMetadata(),
+              ),
             ),
 
             // Product Tags (if sponsored)
@@ -404,7 +541,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.black,
+      color: InstagramTheme.backgroundWhite,
       child: Stack(
         alignment: Alignment.center,
         children: [
@@ -412,20 +549,14 @@ class _ReelsScreenState extends State<ReelsScreen> {
           Container(
             width: double.infinity,
             height: double.infinity,
-            color: Colors.grey[900],
+            color: InstagramTheme.backgroundGrey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   _isPlaying ? Icons.play_circle_outline : Icons.pause_circle_outline,
                   size: 80,
-                  color: Colors.white54,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  reel.caption ?? 'No caption',
-                  style: const TextStyle(color: Colors.white54),
-                  textAlign: TextAlign.center,
+                  color: InstagramTheme.textGrey.withValues(alpha: 0.7),
                 ),
               ],
             ),
@@ -434,12 +565,12 @@ class _ReelsScreenState extends State<ReelsScreen> {
           // Play/Pause overlay
           if (!_isPlaying)
             Container(
-              color: Colors.black54,
+              color: InstagramTheme.backgroundWhite.withValues(alpha: 0.6),
               child: const Center(
                 child: Icon(
                   Icons.pause,
                   size: 60,
-                  color: Colors.white,
+                  color: InstagramTheme.textBlack,
                 ),
               ),
             ),
@@ -456,7 +587,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
         _buildActionButton(
           icon: reel.isLiked ? Icons.favorite : Icons.favorite_border,
           label: _formatCount(reel.likes),
-          color: reel.isLiked ? Colors.red : Colors.white,
+          color: reel.isLiked ? InstagramTheme.errorRed : InstagramTheme.textBlack,
           onTap: _handleLike,
         ),
         const SizedBox(height: 24),
@@ -475,7 +606,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
         _buildActionButton(
           icon: reel.isSaved ? Icons.bookmark : Icons.bookmark_border,
           label: 'Save',
-          color: reel.isSaved ? Colors.yellow : Colors.white,
+          color: reel.isSaved ? InstagramTheme.primaryPink : InstagramTheme.textBlack,
           onTap: _handleSave,
         ),
         const SizedBox(height: 24),
@@ -498,13 +629,13 @@ class _ReelsScreenState extends State<ReelsScreen> {
       onTap: onTap,
       child: Column(
         children: [
-          Icon(icon, color: color ?? Colors.white, size: 28),
-          const SizedBox(height: 4),
+          Icon(icon, color: color ?? InstagramTheme.textBlack, size: 28),
+          const SizedBox(height: 6),
           Text(
             label,
-            style: TextStyle(
-              color: color ?? Colors.white,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontSize: 12,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -520,6 +651,7 @@ class _ReelsScreenState extends State<ReelsScreen> {
       children: [
         // Creator Info
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             GestureDetector(
               onTap: () {
@@ -531,12 +663,19 @@ class _ReelsScreenState extends State<ReelsScreen> {
               },
               child: CircleAvatar(
                 radius: 20,
-                backgroundColor: Colors.grey[800],
+                backgroundColor: InstagramTheme.surfaceWhite,
                 backgroundImage: reel.userAvatarUrl != null
                     ? NetworkImage(reel.userAvatarUrl!)
                     : null,
                 child: reel.userAvatarUrl == null
-                    ? Text(reel.userName[0].toUpperCase())
+                    ? Text(
+                        reel.userName[0].toUpperCase(),
+                        style: const TextStyle(
+                          color: InstagramTheme.textBlack,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      )
                     : null,
               ),
             ),
@@ -544,133 +683,189 @@ class _ReelsScreenState extends State<ReelsScreen> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const ProfileScreen(),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Flexible(
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const ProfileScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            reel.userName,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      );
-                    },
-                    child: Text(
-                      reel.userName,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
                       ),
-                    ),
+                      if (!reel.isFollowing) ...[
+                        const SizedBox(width: 10),
+                        Container(
+                          height: 28,
+                          alignment: Alignment.center,
+                          child: TextButton(
+                            onPressed: () {
+                              _reelsService.toggleFollow(reel.userId);
+                              setState(() {});
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: InstagramTheme.primaryPink,
+                              foregroundColor: InstagramTheme.backgroundWhite,
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                              minimumSize: const Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            child: const Text(
+                              'Follow',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                height: 1.0,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  if (reel.isRisingCreator)
-                    const Text(
-                      'Rising Creator',
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 12,
+                  if (reel.isRisingCreator || reel.isTrending) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      reel.isRisingCreator ? 'Rising Creator' : 'Trending Today',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: InstagramTheme.primaryPink,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
                       ),
                     ),
-                  if (reel.isTrending)
-                    const Text(
-                      'Trending Today',
-                      style: TextStyle(
-                        color: Colors.orange,
-                        fontSize: 12,
-                      ),
-                    ),
+                  ],
                 ],
               ),
             ),
-            if (!reel.isFollowing)
-              TextButton(
-                onPressed: () {
-                  _reelsService.toggleFollow(reel.userId);
-                  setState(() {});
-                },
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                ),
-                child: const Text('Follow'),
-              ),
           ],
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
         
         // Caption
-        if (reel.caption != null)
+        if (reel.caption != null) ...[
           GestureDetector(
             onTap: () {
               // Expand caption
             },
             child: Text(
               reel.caption!,
-              style: const TextStyle(color: Colors.white),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                fontSize: 14,
+                height: 1.4,
+              ),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
           ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 10),
+        ],
         
         // Hashtags
-        if (reel.hashtags.isNotEmpty)
+        if (reel.hashtags.isNotEmpty) ...[
           Wrap(
-            spacing: 8,
+            spacing: 6,
+            runSpacing: 6,
             children: reel.hashtags.map((tag) {
               return GestureDetector(
                 onTap: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Opening #$tag')),
+                    SnackBar(
+                      content: Text('Opening #$tag'),
+                      backgroundColor: InstagramTheme.surfaceWhite,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                   );
                 },
                 child: Text(
                   '#$tag ',
-                  style: const TextStyle(
-                    color: Colors.blue,
-                    fontWeight: FontWeight.bold,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: InstagramTheme.primaryPink,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
                   ),
                 ),
               );
             }).toList(),
           ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 10),
+        ],
         
         // Audio
-        if (reel.audioTitle != null)
+        if (reel.audioTitle != null) ...[
           GestureDetector(
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Opening audio: ${reel.audioTitle}')),
+                SnackBar(
+                  content: Text('Opening audio: ${reel.audioTitle}'),
+                  backgroundColor: InstagramTheme.surfaceWhite,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
               );
             },
             child: Row(
               children: [
-                const Icon(Icons.music_note, color: Colors.white, size: 16),
-                const SizedBox(width: 4),
-                Text(
-                  '${reel.audioTitle}${reel.audioArtist != null ? ' - ${reel.audioArtist}' : ''}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
+                const Icon(
+                  Icons.music_note,
+                  color: InstagramTheme.textBlack,
+                  size: 14,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    '${reel.audioTitle}${reel.audioArtist != null ? ' - ${reel.audioArtist}' : ''}',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontSize: 12,
+                      color: InstagramTheme.textBlack,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 8),
+        ],
         
         // Sponsored Badge
         if (reel.isSponsored)
           Container(
-            margin: const EdgeInsets.only(top: 8),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.orange,
-              borderRadius: BorderRadius.circular(4),
+              color: InstagramTheme.primaryPink,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Text(
+            child: Text(
               'Sponsored',
-              style: TextStyle(
-                color: Colors.white,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: InstagramTheme.backgroundWhite,
                 fontSize: 10,
                 fontWeight: FontWeight.bold,
               ),
@@ -702,9 +897,10 @@ class _ReelsScreenState extends State<ReelsScreen> {
           child: Container(
             margin: const EdgeInsets.only(bottom: 8),
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+            decoration: InstagramTheme.cardDecoration(
+              color: InstagramTheme.surfaceWhite,
+              borderRadius: 12,
+              hasBorder: true,
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -713,12 +909,12 @@ class _ReelsScreenState extends State<ReelsScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: InstagramTheme.dividerGrey,
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: tag.imageUrl != null
                       ? Image.network(tag.imageUrl!)
-                      : const Icon(Icons.shopping_bag),
+                      : const Icon(Icons.shopping_bag, color: InstagramTheme.textBlack),
                 ),
                 const SizedBox(width: 8),
                 Column(
@@ -730,20 +926,25 @@ class _ReelsScreenState extends State<ReelsScreen> {
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
+                        color: InstagramTheme.textBlack,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     if (tag.price != null)
                       Text(
                         '${tag.currency ?? '\$'}${tag.price}',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: InstagramTheme.textGrey,
                           fontSize: 10,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     const Text(
                       'Opens external site',
                       style: TextStyle(
-                        color: Colors.blue,
+                        color: InstagramTheme.primaryPink,
                         fontSize: 8,
                       ),
                     ),

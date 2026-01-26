@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/reel_model.dart';
 import '../services/reel_comments_service.dart';
+import '../theme/instagram_theme.dart';
 
 class ReelCommentsScreen extends StatefulWidget {
   final Reel reel;
@@ -64,9 +65,11 @@ class _ReelCommentsScreenState extends State<ReelCommentsScreen> {
     final comments = _commentsService.getComments(widget.reel.id);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: InstagramTheme.backgroundWhite,
       appBar: AppBar(
         title: const Text('Comments'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
         actions: [
           IconButton(
             icon: const Icon(Icons.sort),
@@ -127,6 +130,8 @@ class _ReelCommentsScreenState extends State<ReelCommentsScreen> {
                         color: Colors.blue,
                         fontWeight: FontWeight.bold,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
@@ -259,6 +264,8 @@ class _ReelCommentsScreenState extends State<ReelCommentsScreen> {
                   Text(
                     comment.text,
                     style: const TextStyle(fontSize: 14),
+                    maxLines: 10,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
                   Row(

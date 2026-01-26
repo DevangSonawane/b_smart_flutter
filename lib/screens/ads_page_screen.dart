@@ -8,6 +8,8 @@ import '../services/wallet_service.dart';
 import '../services/notification_service.dart';
 import '../models/notification_model.dart';
 import 'ad_company_detail_screen.dart';
+import '../theme/instagram_theme.dart';
+import '../widgets/clay_container.dart';
 
 class AdsPageScreen extends StatefulWidget {
   const AdsPageScreen({super.key});
@@ -124,7 +126,7 @@ class _AdsPageScreenState extends State<AdsPageScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(eligibility.reason ?? 'Not eligible'),
-          backgroundColor: Colors.orange,
+          backgroundColor: InstagramTheme.surfaceWhite,
         ),
       );
       return;
@@ -220,27 +222,50 @@ class _AdsPageScreenState extends State<AdsPageScreen>
   void _handleComment() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: InstagramTheme.surfaceWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Comments', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            const TextField(
-              decoration: InputDecoration(hintText: 'Add a comment...'),
+            Text(
+              'Comments',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              style: const TextStyle(color: InstagramTheme.textBlack),
+              decoration: const InputDecoration(
+                hintText: 'Add a comment...',
+                hintStyle: TextStyle(color: InstagramTheme.textGrey),
+              ),
               maxLines: 3,
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Comment added')),
-                );
-              },
-              child: const Text('Post Comment'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ClayButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Comment added'),
+                      backgroundColor: InstagramTheme.surfaceWhite,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                },
+                child: const Text('Post Comment'),
+              ),
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
@@ -304,9 +329,17 @@ class _AdsPageScreenState extends State<AdsPageScreen>
         showDialog(
           context: context,
           barrierDismissible: false,
+          barrierColor: InstagramTheme.backgroundWhite.withValues(alpha: 0.7),
           builder: (context) => AlertDialog(
-            title: const Text('Success!'),
-            content: Text('You earned ${_currentAd!.coinReward} coins!'),
+            backgroundColor: InstagramTheme.surfaceWhite,
+            title: Text(
+              'Success!',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            content: Text(
+              'You earned ${_currentAd!.coinReward} coins!',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
             actions: [
               TextButton(
                 onPressed: () {
@@ -375,8 +408,13 @@ class _AdsPageScreenState extends State<AdsPageScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: InstagramTheme.backgroundWhite,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(InstagramTheme.primaryPink),
+              ),
+            )
           : _currentAd == null
               ? _buildEmptyState()
               : GestureDetector(
@@ -403,23 +441,44 @@ class _AdsPageScreenState extends State<AdsPageScreen>
                     children: [
                       // Video Player Section
                       Expanded(
+                        flex: 7,
                         child: Stack(
                           children: [
                             _buildVideoPlayer(),
                             _buildRightOverlay(),
-                            // Category Header positioned lower
                             Positioned(
-                              top: 60,
+                              top: 0,
                               left: 0,
                               right: 0,
-                              child: _buildCategoryHeader(),
+                              child: SafeArea(
+                                bottom: false,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: [
+                                        InstagramTheme.backgroundWhite,
+                                        InstagramTheme.backgroundWhite.withValues(alpha: 0.0),
+                                      ],
+                                    ),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: _buildCategoryHeader(),
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
 
                       // Information Section
-                      _buildInformationSection(),
+                      Flexible(
+                        flex: 4,
+                        child: _buildInformationSection(),
+                      ),
                     ],
                   ),
                 ),
@@ -428,41 +487,39 @@ class _AdsPageScreenState extends State<AdsPageScreen>
 
   Widget _buildCategoryHeader() {
     return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.black.withValues(alpha: 0.7),
-            Colors.transparent,
-          ],
-        ),
-      ),
+      height: 56,
+      color: InstagramTheme.backgroundWhite,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         itemCount: _categories.length,
         itemBuilder: (context, index) {
           final category = _categories[index];
           final isSelected = _selectedCategoryId == category.id;
 
-          return GestureDetector(
-            onTap: () => _onCategorySelected(category.id),
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? Colors.blue : Colors.grey[200],
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Center(
-                child: Text(
-                  category.name,
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => _onCategorySelected(category.id),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected ? InstagramTheme.primaryPink : InstagramTheme.surfaceWhite,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isSelected ? InstagramTheme.primaryPink : InstagramTheme.borderGrey,
+                    width: 1,
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    category.name,
+                    style: TextStyle(
+                      color: isSelected ? InstagramTheme.backgroundWhite : InstagramTheme.textBlack,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -476,16 +533,50 @@ class _AdsPageScreenState extends State<AdsPageScreen>
   Widget _buildVideoPlayer() {
     if (_currentAd == null) return const SizedBox();
 
-    final progress = _watchSession?.watchPercentage ?? 0.0 / 100;
+    final progress = ((_watchSession?.watchPercentage ?? 0.0) / 100).clamp(0.0, 1.0);
 
     return Container(
       width: double.infinity,
-      color: Colors.black,
+      color: InstagramTheme.backgroundGrey,
       child: Stack(
-        alignment: Alignment.center,
+        fit: StackFit.expand,
         children: [
-          // Placeholder for video
-          const Icon(Icons.play_circle_outline, size: 100, color: Colors.white54),
+          // Ad Image/Video Display
+          if (_currentAd!.imageUrl != null)
+            Image.network(
+              _currentAd!.imageUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+            )
+          else if (_currentAd!.videoUrl != null)
+            Container(
+              color: InstagramTheme.backgroundGrey,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.play_circle_filled,
+                      size: 80,
+                      color: InstagramTheme.primaryPink.withValues(alpha: 0.8),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _currentAd!.title,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: InstagramTheme.textBlack,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            _buildPlaceholder(),
           
           // Progress bar at bottom
           Positioned(
@@ -494,8 +585,8 @@ class _AdsPageScreenState extends State<AdsPageScreen>
             right: 0,
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.grey[800],
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+              backgroundColor: InstagramTheme.surfaceWhite.withValues(alpha: 0.3),
+              valueColor: const AlwaysStoppedAnimation<Color>(InstagramTheme.primaryPink),
               minHeight: 4,
             ),
           ),
@@ -503,9 +594,13 @@ class _AdsPageScreenState extends State<AdsPageScreen>
           // Play/Pause overlay
           if (_isPaused)
             Container(
-              color: Colors.black54,
-              child: const Center(
-                child: Icon(Icons.play_arrow, size: 60, color: Colors.white),
+              color: InstagramTheme.backgroundWhite.withValues(alpha: 0.7),
+              child: Center(
+                child: Icon(
+                  Icons.play_arrow,
+                  size: 60,
+                  color: InstagramTheme.primaryPink,
+                ),
               ),
             ),
         ],
@@ -513,64 +608,106 @@ class _AdsPageScreenState extends State<AdsPageScreen>
     );
   }
 
+  Widget _buildPlaceholder() {
+    return Container(
+      color: InstagramTheme.backgroundGrey,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.ads_click,
+              size: 80,
+              color: InstagramTheme.textGrey.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 16),
+            if (_currentAd != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Text(
+                  _currentAd!.title,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: InstagramTheme.textBlack,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildRightOverlay() {
     return Positioned(
-      right: 16,
-      bottom: 120,
+      right: 12,
+      bottom: 100,
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Views Count
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black54,
+              color: InstagramTheme.surfaceWhite.withValues(alpha: 0.95),
               borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: InstagramTheme.textBlack.withValues(alpha: 0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.visibility, color: Colors.white, size: 20),
+                const Icon(Icons.visibility, color: InstagramTheme.textBlack, size: 18),
                 const SizedBox(height: 4),
                 Text(
-                  '$_views',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  _formatViews(_views),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: InstagramTheme.textBlack,
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Like Button
-          IconButton(
-            icon: Icon(
-              _isLiked ? Icons.favorite : Icons.favorite_border,
-              color: _isLiked ? Colors.red : Colors.white,
-              size: 32,
-            ),
+          _buildActionButton(
+            icon: _isLiked ? Icons.favorite : Icons.favorite_border,
+            color: _isLiked ? InstagramTheme.errorRed : InstagramTheme.textBlack,
             onPressed: _toggleLike,
           ),
           const SizedBox(height: 8),
 
           // Comment Button
-          IconButton(
-            icon: const Icon(Icons.comment_outlined, color: Colors.white, size: 32),
+          _buildActionButton(
+            icon: Icons.comment_outlined,
+            color: InstagramTheme.textBlack,
             onPressed: _handleComment,
           ),
           const SizedBox(height: 8),
 
           // Share Button
-          IconButton(
-            icon: const Icon(Icons.share_outlined, color: Colors.white, size: 32),
+          _buildActionButton(
+            icon: Icons.share_outlined,
+            color: InstagramTheme.textBlack,
             onPressed: _handleShare,
           ),
           const SizedBox(height: 8),
 
           // Mute/Unmute Button
-          IconButton(
-            icon: Icon(
-              _isMuted ? Icons.volume_off : Icons.volume_up,
-              color: Colors.white,
-              size: 32,
-            ),
+          _buildActionButton(
+            icon: _isMuted ? Icons.volume_off : Icons.volume_up,
+            color: InstagramTheme.textBlack,
             onPressed: _toggleMute,
           ),
         ],
@@ -578,152 +715,238 @@ class _AdsPageScreenState extends State<AdsPageScreen>
     );
   }
 
+  Widget _buildActionButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: InstagramTheme.surfaceWhite.withValues(alpha: 0.95),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: InstagramTheme.textBlack.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: color, size: 24),
+        onPressed: onPressed,
+        padding: const EdgeInsets.all(10),
+        constraints: const BoxConstraints(),
+      ),
+    );
+  }
+
+  String _formatViews(int views) {
+    if (views >= 1000000) {
+      return '${(views / 1000000).toStringAsFixed(1)}M';
+    } else if (views >= 1000) {
+      return '${(views / 1000).toStringAsFixed(1)}K';
+    }
+    return views.toString();
+  }
+
   Widget _buildInformationSection() {
     if (_currentAd == null) return const SizedBox();
 
     return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Company Details
-          GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => AdCompanyDetailScreen(
-                    companyId: _currentAd!.companyId,
-                  ),
-                ),
-              );
-            },
-            child: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.blue,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.business, color: Colors.white),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                            _currentAd!.companyName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+      color: InstagramTheme.backgroundGrey,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              decoration: InstagramTheme.cardDecoration(
+                borderRadius: 16,
+                hasBorder: true,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Company Header
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => AdCompanyDetailScreen(
+                              companyId: _currentAd!.companyId,
                             ),
                           ),
-                          if (_currentAd!.isVerified) ...[
-                            const SizedBox(width: 4),
-                            const Icon(Icons.verified, size: 16, color: Colors.blue),
-                          ],
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: InstagramTheme.backgroundGrey,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: _currentAd!.companyLogo != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      _currentAd!.companyLogo!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          const Icon(Icons.business, color: InstagramTheme.primaryPink),
+                                    ),
+                                  )
+                                : const Icon(Icons.business, color: InstagramTheme.primaryPink, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Flexible(
+                                      child: Text(
+                                        _currentAd!.companyName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: InstagramTheme.textBlack,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    if (_currentAd!.isVerified) ...[
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.verified, size: 18, color: InstagramTheme.primaryPink),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Tap to view company details',
+                                  style: TextStyle(
+                                    color: InstagramTheme.textGrey.withValues(alpha: 0.8),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    
+                    // Coins and Timer Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              const Icon(Icons.monetization_on, color: InstagramTheme.primaryPink, size: 20),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  'Earn ${_currentAd!.coinReward} coins',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: InstagramTheme.textBlack,
+                                    fontSize: 15,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: InstagramTheme.backgroundGrey,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            '${_watchSession?.watchedDuration ?? 0}s / ${_currentAd!.watchDurationSeconds}s',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: InstagramTheme.textBlack,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Progress Bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: ((_watchSession?.watchPercentage ?? 0.0) / 100).clamp(0.0, 1.0),
+                        backgroundColor: InstagramTheme.dividerGrey,
+                        valueColor: const AlwaysStoppedAnimation<Color>(InstagramTheme.primaryPink),
+                        minHeight: 6,
+                      ),
+                    ),
+                    
+                    // Description
+                    if (_currentAd!.description.isNotEmpty) ...[
+                      const SizedBox(height: 16),
                       Text(
-                        'Tap to view company details',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        _currentAd!.description,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          height: 1.5,
+                          color: InstagramTheme.textBlack,
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
-                  ),
+                    
+                    // Categories
+                    if (_currentAd!.targetCategories.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _currentAd!.targetCategories.take(6).map((cat) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: InstagramTheme.backgroundGrey,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: InstagramTheme.borderGrey,
+                                width: 1,
+                              ),
+                            ),
+                            child: Text(
+                              cat,
+                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: InstagramTheme.textBlack,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Ad Category/Tags
-          if (_currentAd!.targetCategories.isNotEmpty)
-            Wrap(
-              spacing: 8,
-              children: [
-                const Text(
-                  'Related to: ',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                ..._currentAd!.targetCategories.map((cat) => Chip(
-                      label: Text(cat),
-                      labelStyle: const TextStyle(fontSize: 12),
-                    )),
-              ],
-            ),
-          const SizedBox(height: 8),
-
-          // Ad Description
-          if (_currentAd!.description.isNotEmpty)
-            Text(
-              _currentAd!.description,
-              style: TextStyle(color: Colors.grey[700]),
-            ),
-          const SizedBox(height: 16),
-
-          // Coins Reward Information
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.amber[50],
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.monetization_on, color: Colors.amber, size: 24),
-                const SizedBox(width: 8),
-                Text(
-                  'Watch & Earn ${_currentAd!.coinReward} Coins',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.amber,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Video Progress Bar
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Progress',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                  Text(
-                    '${_watchSession?.watchedDuration ?? 0}s / ${_currentAd!.watchDurationSeconds}s',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
               ),
-              const SizedBox(height: 8),
-              LinearProgressIndicator(
-                value: (_watchSession?.watchPercentage ?? 0.0) / 100,
-                backgroundColor: Colors.grey[300],
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-                minHeight: 6,
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -733,20 +956,20 @@ class _AdsPageScreenState extends State<AdsPageScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.ads_click, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 16),
+          Icon(
+            Icons.ads_click,
+            size: 80,
+            color: InstagramTheme.textGrey.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 24),
           Text(
             'No Ads Available',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             'Check back later for more ads',
-            style: TextStyle(color: Colors.grey[500]),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],
       ),

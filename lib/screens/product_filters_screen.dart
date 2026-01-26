@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/promoted_product_model.dart';
 import '../services/promoted_products_service.dart';
+import '../theme/instagram_theme.dart';
 
 class ProductFiltersScreen extends StatefulWidget {
   final ProductFilter? initialFilter;
@@ -90,11 +91,11 @@ class _ProductFiltersScreenState extends State<ProductFiltersScreen> {
     final companies = _productsService.getCompanies();
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: InstagramTheme.backgroundWhite,
       appBar: AppBar(
         title: const Text('Filters'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
         actions: [
           TextButton(
             onPressed: _clearFilters,

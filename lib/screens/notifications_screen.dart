@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/notification_model.dart';
 import '../services/notification_service.dart';
+import '../theme/instagram_theme.dart';
+import '../widgets/clay_container.dart';
 import 'home_dashboard.dart';
 import 'notification_settings_screen.dart';
 
@@ -50,9 +52,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear All Notifications'),
+        backgroundColor: InstagramTheme.surfaceWhite,
+        title: const Text('Clear All Notifications', 
+            style: TextStyle(color: InstagramTheme.textBlack)),
         content: const Text(
           'Are you sure you want to delete all notifications? This action cannot be undone.',
+          style: TextStyle(color: InstagramTheme.textGrey),
         ),
         actions: [
           TextButton(
@@ -68,7 +73,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 const SnackBar(content: Text('All notifications cleared')),
               );
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: InstagramTheme.errorRed),
             child: const Text('Clear All'),
           ),
         ],
@@ -95,6 +100,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Notification: ${notification.title}'),
+          backgroundColor: InstagramTheme.surfaceWhite,
         ),
       );
     }
@@ -114,11 +120,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Color _getNotificationColor(NotificationType type) {
     switch (type) {
       case NotificationType.ad:
-        return Colors.blue;
+        return InstagramTheme.primaryPink;
       case NotificationType.system:
-        return Colors.orange;
+        return InstagramTheme.textBlack;
       case NotificationType.activity:
-        return Colors.pink;
+        return InstagramTheme.errorRed; // Red for hearts/likes
     }
   }
 
@@ -129,8 +135,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -159,14 +165,21 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(InstagramTheme.primaryPink),
+              ),
+            )
           : _notifications.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(
                   onRefresh: () async {
                     _loadNotifications();
                   },
+                  color: InstagramTheme.primaryPink,
+                  backgroundColor: InstagramTheme.surfaceWhite,
                   child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
                     itemCount: _notifications.length,
                     itemBuilder: (context, index) {
                       final notification = _notifications[index];
@@ -182,25 +195,32 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.notifications_none,
-            size: 80,
-            color: Colors.grey[400],
+          ClayContainer(
+            width: 120,
+            height: 120,
+            borderRadius: 60,
+            child: Center(
+              child: Icon(
+                Icons.notifications_none,
+                size: 60,
+                color: InstagramTheme.textGrey.withValues(alpha: 0.5),
+              ),
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
+          const SizedBox(height: 24),
+          const Text(
             'No notifications',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
+              color: InstagramTheme.textBlack,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
+          const Text(
             'You\'re all caught up!',
             style: TextStyle(
-              color: Colors.grey[500],
+              color: InstagramTheme.textGrey,
             ),
           ),
         ],
@@ -213,89 +233,84 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     final iconColor = _getNotificationColor(notification.type);
     final icon = _getNotificationIcon(notification.type);
 
-    return InkWell(
-      onTap: () => _handleNotificationTap(notification),
-      child: Container(
-        color: isUnread ? Colors.blue.shade50 : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Notification Icon
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ClayContainer(
+        borderRadius: 16,
+        color: isUnread ? InstagramTheme.surfaceWhite.withValues(alpha: 0.8) : InstagramTheme.surfaceWhite,
+        onTap: () => _handleNotificationTap(notification),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Notification Icon
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: iconColor,
+                  size: 24,
+                ),
               ),
-              child: Icon(
-                icon,
-                color: iconColor,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
+              const SizedBox(width: 16),
 
-            // Notification Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          notification.title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: isUnread
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isUnread ? Colors.black : Colors.black87,
+              // Notification Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            notification.title,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: isUnread
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: InstagramTheme.textBlack,
+                            ),
                           ),
                         ),
+                        if (isUnread)
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: InstagramTheme.primaryPink,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      notification.message,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: InstagramTheme.textGrey,
                       ),
-                      if (isUnread)
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    notification.message,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[700],
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _formatTimestamp(notification.timestamp),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
+                    const SizedBox(height: 8),
+                    Text(
+                      _formatTimestamp(notification.timestamp),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: InstagramTheme.textGrey.withValues(alpha: 0.5),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-
-            // Action Button
-            if (isUnread)
-              IconButton(
-                icon: const Icon(Icons.close, size: 20),
-                color: Colors.grey,
-                onPressed: () => _markAsRead(notification.id),
-                tooltip: 'Mark as read',
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );

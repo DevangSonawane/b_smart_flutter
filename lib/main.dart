@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
-import 'theme/sci_fi_theme.dart';
+import 'theme/instagram_theme.dart';
 
 void main() {
   runApp(const BSmartApp());
@@ -14,7 +14,7 @@ class BSmartApp extends StatelessWidget {
     return MaterialApp(
       title: 'b Smart',
       debugShowCheckedModeBanner: false,
-      theme: SciFiTheme.theme,
+      theme: InstagramTheme.theme,
       home: const LoginScreen(),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/promoted_products_service.dart';
+import '../theme/instagram_theme.dart';
 import 'company_detail_screen.dart';
 
 class ProductDetailScreen extends StatelessWidget {
@@ -28,6 +29,8 @@ class ProductDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Product Details'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: SingleChildScrollView(
         child: Column(

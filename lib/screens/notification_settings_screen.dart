@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/instagram_theme.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -21,8 +22,8 @@ class _NotificationSettingsScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notification Settings'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: ListView(
         children: [

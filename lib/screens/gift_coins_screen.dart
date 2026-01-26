@@ -4,6 +4,7 @@ import '../services/notification_service.dart';
 import '../services/dummy_data_service.dart';
 import '../models/user_model.dart';
 import '../models/notification_model.dart';
+import '../theme/instagram_theme.dart';
 
 class GiftCoinsScreen extends StatefulWidget {
   const GiftCoinsScreen({super.key});
@@ -157,8 +158,8 @@ class _GiftCoinsScreenState extends State<GiftCoinsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gift Coins'),
-        backgroundColor: Colors.pink,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

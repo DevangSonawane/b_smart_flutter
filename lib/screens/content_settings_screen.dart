@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/content_moderation_service.dart';
+import '../theme/instagram_theme.dart';
 
 class ContentSettingsScreen extends StatefulWidget {
   const ContentSettingsScreen({super.key});
@@ -36,6 +37,8 @@ class _ContentSettingsScreenState extends State<ContentSettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Content Settings'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

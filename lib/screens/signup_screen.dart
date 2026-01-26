@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart';
-import '../theme/sci_fi_theme.dart';
+import '../theme/instagram_theme.dart';
+import '../widgets/clay_container.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -18,7 +19,7 @@ class _SignUpScreenState extends State<SignUpScreen>
   final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
 
-  String _selectedMethod = 'email'; // 'email', 'phone', 'social'
+  String _selectedMethod = 'email'; // 'email', 'phone'
   bool _isPasswordVisible = false;
   bool _isOTPSent = false;
   bool _isLoading = false;
@@ -31,10 +32,10 @@ class _SignUpScreenState extends State<SignUpScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1000),
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
     _animationController.forward();
   }
@@ -52,38 +53,16 @@ class _SignUpScreenState extends State<SignUpScreen>
 
   Future<void> _sendOTP() async {
     if (_selectedMethod == 'email' && _emailController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please enter your email first'),
-          backgroundColor: SciFiTheme.cardDark,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      _showError('Please enter your email first');
       return;
     }
     if (_selectedMethod == 'phone' && _phoneController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please enter your phone number first'),
-          backgroundColor: SciFiTheme.cardDark,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      _showError('Please enter your phone number first');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     await Future.delayed(const Duration(seconds: 1));
-
     setState(() {
       _isOTPSent = true;
       _isLoading = false;
@@ -93,27 +72,27 @@ class _SignUpScreenState extends State<SignUpScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('OTP sent successfully!'),
-        backgroundColor: SciFiTheme.neonGreen,
+        backgroundColor: InstagramTheme.primaryPink,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: InstagramTheme.errorRed,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
   Future<void> _handleSignUp() async {
     if (!_acceptedTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Please accept Terms & Privacy Policy'),
-          backgroundColor: SciFiTheme.cardDark,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-      );
+      _showError('Please accept Terms & Privacy Policy');
       return;
     }
 
@@ -124,35 +103,17 @@ class _SignUpScreenState extends State<SignUpScreen>
       }
 
       if (_otpController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Please enter OTP'),
-            backgroundColor: SciFiTheme.cardDark,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        _showError('Please enter OTP');
         return;
       }
 
-      setState(() {
-        _isLoading = true;
-      });
-
+      setState(() => _isLoading = true);
       await Future.delayed(const Duration(seconds: 1));
 
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-
-        // Show success screen
+        setState(() => _isLoading = false);
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => const SignUpSuccessScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const SignUpSuccessScreen()),
         );
       }
     }
@@ -165,568 +126,239 @@ class _SignUpScreenState extends State<SignUpScreen>
     final maxWidth = isTablet ? 500.0 : size.width;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: SciFiTheme.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: SciFiTheme.responsivePadding(context),
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxWidth),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 20),
-                        // Animated Logo
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: SciFiTheme.accentGradient,
-                            boxShadow: [
-                              BoxShadow(
-                                color: SciFiTheme.accentCyan.withValues(alpha: 0.5),
-                                blurRadius: 30,
-                                spreadRadius: 5,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.smart_toy,
-                            size: 60,
-                            color: SciFiTheme.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        ShaderMask(
-                          shaderCallback: (bounds) =>
-                              SciFiTheme.accentGradient.createShader(bounds),
-                          child: Text(
-                            'b Smart',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: SciFiTheme.responsiveFontSize(
-                                  context, 36),
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 2,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: InstagramTheme.responsivePadding(context),
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 20),
+                      // Logo
+                      Center(
+                        child: ClayContainer(
+                          width: 80,
+                          height: 80,
+                          borderRadius: 40,
+                          child: Center(
+                            child: Icon(
+                              Icons.smart_toy_outlined,
+                              size: 40,
+                              color: InstagramTheme.primaryPink,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Create your account',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: SciFiTheme.responsiveFontSize(context, 16),
-                            color: SciFiTheme.textSecondary,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
+                      ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Create Account',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.displayMedium,
+                      ),
+                      const SizedBox(height: 32),
 
-                        // Sign Up Method Selection with Sci-Fi styling
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            gradient: SciFiTheme.cardGradient,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: SciFiTheme.accentCyan.withValues(alpha: 0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedMethod = 'email';
-                                      _isOTPSent = false;
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
-                                    decoration: BoxDecoration(
-                                      gradient: _selectedMethod == 'email'
-                                          ? SciFiTheme.accentGradient
-                                          : null,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      'Email',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: _selectedMethod == 'email'
-                                            ? SciFiTheme.textPrimary
-                                            : SciFiTheme.textSecondary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedMethod = 'phone';
-                                      _isOTPSent = false;
-                                    });
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 12),
-                                    decoration: BoxDecoration(
-                                      gradient: _selectedMethod == 'phone'
-                                          ? SciFiTheme.accentGradient
-                                          : null,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      'Phone',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        color: _selectedMethod == 'phone'
-                                            ? SciFiTheme.textPrimary
-                                            : SciFiTheme.textSecondary,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Name Field
-                        TextFormField(
-                          controller: _nameController,
-                          style: const TextStyle(color: SciFiTheme.textPrimary),
-                          decoration: const InputDecoration(
-                            labelText: 'Full Name',
-                            hintText: 'Enter your name',
-                            prefixIcon: Icon(
-                              Icons.person_outlined,
-                              color: SciFiTheme.accentCyan,
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your name';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Email or Phone Field
-                        if (_selectedMethod == 'email')
-                          TextFormField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            style:
-                                const TextStyle(color: SciFiTheme.textPrimary),
-                            decoration: const InputDecoration(
-                              labelText: 'Email',
-                              hintText: 'Enter your email',
-                              prefixIcon: Icon(
-                                Icons.email_outlined,
-                                color: SciFiTheme.accentCyan,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              if (!value.contains('@')) {
-                                return 'Please enter a valid email';
-                              }
-                              return null;
-                            },
-                          )
-                        else
-                          TextFormField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            style:
-                                const TextStyle(color: SciFiTheme.textPrimary),
-                            decoration: const InputDecoration(
-                              labelText: 'Phone Number',
-                              hintText: 'Enter your phone number',
-                              prefixIcon: Icon(
-                                Icons.phone_outlined,
-                                color: SciFiTheme.accentCyan,
-                              ),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please enter your phone number';
-                              }
-                              return null;
-                            },
-                          ),
-                        const SizedBox(height: 16),
-
-                        // Password Field
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: !_isPasswordVisible,
-                          style: const TextStyle(color: SciFiTheme.textPrimary),
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                            hintText: 'Enter your password',
-                            prefixIcon: const Icon(
-                              Icons.lock_outlined,
-                              color: SciFiTheme.accentCyan,
-                            ),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _isPasswordVisible
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: SciFiTheme.accentCyan,
-                              ),
+                      // Method Selection
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClayButton(
+                              color: _selectedMethod == 'email'
+                                  ? InstagramTheme.primaryPink
+                                  : InstagramTheme.surfaceWhite,
                               onPressed: () {
                                 setState(() {
-                                  _isPasswordVisible = !_isPasswordVisible;
+                                  _selectedMethod = 'email';
+                                  _isOTPSent = false;
                                 });
                               },
+                              child: Text(
+                                'Email',
+                                style: TextStyle(
+                                  color: _selectedMethod == 'email'
+                                      ? InstagramTheme.backgroundWhite
+                                      : InstagramTheme.textGrey,
+                                ),
+                              ),
                             ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ClayButton(
+                              color: _selectedMethod == 'phone'
+                                  ? InstagramTheme.primaryPink
+                                  : InstagramTheme.surfaceWhite,
+                              onPressed: () {
+                                setState(() {
+                                  _selectedMethod = 'phone';
+                                  _isOTPSent = false;
+                                });
+                              },
+                              child: Text(
+                                'Phone',
+                                style: TextStyle(
+                                  color: _selectedMethod == 'phone'
+                                      ? InstagramTheme.backgroundWhite
+                                      : InstagramTheme.textGrey,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Name Field
+                      TextFormField(
+                        controller: _nameController,
+                        style: const TextStyle(color: InstagramTheme.textBlack),
+                        decoration: const InputDecoration(
+                          labelText: 'Full Name',
+                          prefixIcon: Icon(Icons.person_outlined),
+                        ),
+                        validator: (value) =>
+                            value?.isEmpty ?? true ? 'Please enter your name' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Email/Phone Field
+                      if (_selectedMethod == 'email')
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          style: const TextStyle(color: InstagramTheme.textBlack),
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your password';
-                            }
-                            if (value.length < 6) {
-                              return 'Password must be at least 6 characters';
-                            }
+                            if (value?.isEmpty ?? true) return 'Enter email';
+                            if (!value!.contains('@')) return 'Invalid email';
                             return null;
                           },
+                        )
+                      else
+                        TextFormField(
+                          controller: _phoneController,
+                          keyboardType: TextInputType.phone,
+                          style: const TextStyle(color: InstagramTheme.textBlack),
+                          decoration: const InputDecoration(
+                            labelText: 'Phone Number',
+                            prefixIcon: Icon(Icons.phone_outlined),
+                          ),
+                          validator: (value) =>
+                              value?.isEmpty ?? true ? 'Enter phone number' : null,
                         ),
-                        const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                        // OTP Field (shown after OTP is sent)
-                        if (_isOTPSent)
-                          TextFormField(
-                            controller: _otpController,
-                            keyboardType: TextInputType.number,
-                            style:
-                                const TextStyle(color: SciFiTheme.textPrimary),
-                            decoration: const InputDecoration(
-                              labelText: 'OTP',
-                              hintText: 'Enter OTP',
-                              prefixIcon: Icon(
-                                Icons.lock_clock_outlined,
-                                color: SciFiTheme.accentCyan,
-                              ),
+                      // Password Field
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: !_isPasswordVisible,
+                        style: const TextStyle(color: InstagramTheme.textBlack),
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: InstagramTheme.textGrey,
                             ),
-                          ),
-                        if (_isOTPSent) const SizedBox(height: 16),
-
-                        // Terms & Privacy Policy with Sci-Fi styling
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            gradient: SciFiTheme.cardGradient,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: _acceptedTerms
-                                  ? SciFiTheme.accentCyan
-                                  : SciFiTheme.accentCyan.withValues(alpha: 0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: _acceptedTerms
-                                      ? SciFiTheme.accentGradient
-                                      : null,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: SciFiTheme.accentCyan,
-                                    width: 2,
-                                  ),
-                                ),
-                                child: Checkbox(
-                                  value: _acceptedTerms,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _acceptedTerms = value ?? false;
-                                    });
-                                  },
-                                  fillColor: WidgetStateProperty.all(
-                                      _acceptedTerms
-                                          ? Colors.transparent
-                                          : Colors.transparent),
-                                  checkColor: SciFiTheme.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: const Text(
-                                            'Terms & Privacy Policy'),
-                                        backgroundColor: SciFiTheme.cardDark,
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(12),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: RichText(
-                                    text: TextSpan(
-                                      style: const TextStyle(
-                                          color: SciFiTheme.textSecondary,
-                                          fontSize: 12),
-                                      children: [
-                                        const TextSpan(text: 'I accept the '),
-                                        TextSpan(
-                                          text: 'Terms & Conditions',
-                                          style: TextStyle(
-                                            color: SciFiTheme.accentCyan,
-                                            decoration:
-                                                TextDecoration.underline,
-                                          ),
-                                        ),
-                                        const TextSpan(text: ' and '),
-                                        TextSpan(
-                                          text: 'Privacy Policy',
-                                          style: TextStyle(
-                                            color: SciFiTheme.accentCyan,
-                                            decoration:
-                                                TextDecoration.underline,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                            onPressed: () => setState(
+                                () => _isPasswordVisible = !_isPasswordVisible),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        validator: (value) {
+                          if (value?.isEmpty ?? true) return 'Enter password';
+                          if (value!.length < 6) return 'Min 6 characters';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
 
-                        // Sign Up Button with Gradient
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: SciFiTheme.accentGradient,
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: SciFiTheme.accentCyan.withValues(alpha: 0.4),
-                                blurRadius: 15,
-                                offset: const Offset(0, 5),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _handleSignUp,
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.symmetric(
-                                vertical: isTablet ? 18 : 16,
-                              ),
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 24,
-                                    width: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          SciFiTheme.textPrimary),
-                                    ),
-                                  )
-                                : Text(
-                                    _isOTPSent ? 'VERIFY & SIGN UP' : 'SEND OTP',
-                                    style: TextStyle(
-                                      fontSize: SciFiTheme.responsiveFontSize(
-                                          context, 16),
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
+                      // OTP Field
+                      if (_isOTPSent)
+                        TextFormField(
+                          controller: _otpController,
+                          keyboardType: TextInputType.number,
+                          style: const TextStyle(color: InstagramTheme.textBlack),
+                          decoration: const InputDecoration(
+                            labelText: 'OTP',
+                            prefixIcon: Icon(Icons.lock_clock_outlined),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                      if (_isOTPSent) const SizedBox(height: 16),
 
-                        // Divider
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.transparent,
-                                      SciFiTheme.accentCyan.withValues(alpha: 0.5),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              child: Text(
-                                'OR',
-                                style: TextStyle(
-                                  color: SciFiTheme.textSecondary,
-                                  fontSize: 12,
-                                  letterSpacing: 2,
-                                ),
-                              ),
-                            ),
-                            Expanded(
-                              child: Container(
-                                height: 1,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      SciFiTheme.accentCyan.withValues(alpha: 0.5),
-                                      Colors.transparent,
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Social Login Buttons
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: SciFiTheme.cardGradient,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: SciFiTheme.accentCyan.withValues(alpha: 0.3),
-                              width: 1.5,
+                      // Terms
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: _acceptedTerms,
+                            activeColor: InstagramTheme.primaryPink,
+                            checkColor: InstagramTheme.backgroundWhite,
+                            onChanged: (val) =>
+                                setState(() => _acceptedTerms = val ?? false),
+                          ),
+                          Expanded(
+                            child: Text(
+                              'I accept Terms & Conditions and Privacy Policy',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
                             ),
                           ),
-                          child: OutlinedButton.icon(
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Sign Up Button
+                      SizedBox(
+                        height: 56,
+                        child: ClayButton(
+                          onPressed: _isLoading ? null : _handleSignUp,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.5,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        InstagramTheme.backgroundWhite),
+                                  ),
+                                )
+                              : Text(_isOTPSent ? 'VERIFY & SIGN UP' : 'SEND OTP'),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Login Link
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Already have an account? ",
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                          TextButton(
                             onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                      'Google sign up coming soon'),
-                                  backgroundColor: SciFiTheme.cardDark,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
+                              Navigator.of(context).pushReplacement(
+                                MaterialPageRoute(
+                                  builder: (context) => const LoginScreen(),
                                 ),
                               );
                             },
-                            icon: const Icon(Icons.g_mobiledata,
-                                size: 24, color: SciFiTheme.accentCyan),
-                            label: const Text('Continue with Google',
-                                style: TextStyle(color: SciFiTheme.textPrimary)),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide.none,
-                            ),
+                            child: const Text('Login'),
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: SciFiTheme.cardGradient,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: SciFiTheme.accentCyan.withValues(alpha: 0.3),
-                              width: 1.5,
-                            ),
-                          ),
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                      'Apple sign up coming soon'),
-                                  backgroundColor: SciFiTheme.cardDark,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.apple,
-                                size: 24, color: SciFiTheme.accentCyan),
-                            label: const Text('Continue with Apple',
-                                style: TextStyle(color: SciFiTheme.textPrimary)),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide.none,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Login Link
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Already have an account? ",
-                              style: TextStyle(
-                                color: SciFiTheme.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pushReplacement(
-                                  MaterialPageRoute(
-                                    builder: (context) => const LoginScreen(),
-                                  ),
-                                );
-                              },
-                              child: ShaderMask(
-                                shaderCallback: (bounds) =>
-                                    SciFiTheme.accentGradient
-                                        .createShader(bounds),
-                                child: const Text(
-                                  'Login',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                   ),
                 ),
               ),
@@ -743,107 +375,53 @@ class SignUpSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
-
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: SciFiTheme.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: SciFiTheme.responsivePadding(context),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(30),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: SciFiTheme.neonGradient,
-                      boxShadow: [
-                        BoxShadow(
-                          color: SciFiTheme.neonGreen.withValues(alpha: 0.5),
-                          blurRadius: 40,
-                          spreadRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.check_circle,
-                      size: 80,
-                      color: SciFiTheme.textPrimary,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: InstagramTheme.responsivePadding(context),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ClayContainer(
+                  width: 120,
+                  height: 120,
+                  borderRadius: 60,
+                  child: Center(
+                    child: Icon(
+                      Icons.check_circle_outline,
+                      size: 60,
+                      color: InstagramTheme.primaryPink,
                     ),
                   ),
-                  const SizedBox(height: 32),
-                  ShaderMask(
-                    shaderCallback: (bounds) =>
-                        SciFiTheme.accentGradient.createShader(bounds),
-                    child: Text(
-                      'Account Created!',
-                      style: TextStyle(
-                        fontSize: SciFiTheme.responsiveFontSize(context, 32),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
+                ),
+                const SizedBox(height: 32),
+                Text(
+                  'Account Created!',
+                  style: Theme.of(context).textTheme.displayMedium,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Your account has been successfully created.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 48),
+                SizedBox(
+                  height: 56,
+                  width: double.infinity,
+                  child: ClayButton(
+                    onPressed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const LoginScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text('GO TO LOGIN'),
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Your account has been successfully created.\nWelcome to the future!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: SciFiTheme.responsiveFontSize(context, 16),
-                      color: SciFiTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 48),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: SciFiTheme.accentGradient,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: SciFiTheme.accentCyan.withValues(alpha: 0.4),
-                          blurRadius: 15,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isTablet ? 64 : 48,
-                          vertical: isTablet ? 20 : 16,
-                        ),
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        'GO TO LOGIN',
-                        style: TextStyle(
-                          fontSize: SciFiTheme.responsiveFontSize(context, 16),
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

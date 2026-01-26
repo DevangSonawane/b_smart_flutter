@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/wallet_service.dart';
 import '../models/wallet_model.dart';
+import '../theme/instagram_theme.dart';
 
 class AccountDetailsScreen extends StatefulWidget {
   const AccountDetailsScreen({super.key});
@@ -136,8 +137,8 @@ class _AccountDetailsScreenState extends State<AccountDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(_existingDetails == null ? 'Add Account Details' : 'Edit Account Details'),
-        backgroundColor: Colors.amber,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
         actions: [
           if (_existingDetails != null)
             IconButton(

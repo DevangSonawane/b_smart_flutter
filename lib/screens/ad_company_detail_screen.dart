@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/ad_service.dart';
+import '../theme/instagram_theme.dart';
 
 class AdCompanyDetailScreen extends StatelessWidget {
   final String companyId;
@@ -25,8 +26,8 @@ class AdCompanyDetailScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Company Details'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

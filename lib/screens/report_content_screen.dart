@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/content_moderation_service.dart';
+import '../theme/instagram_theme.dart';
 
 class ReportContentScreen extends StatefulWidget {
   final String reelId;
@@ -83,6 +84,8 @@ class _ReportContentScreenState extends State<ReportContentScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Report Content'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

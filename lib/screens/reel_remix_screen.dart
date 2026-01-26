@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/reel_model.dart';
+import '../theme/instagram_theme.dart';
 import 'create_screen.dart';
 
 class ReelRemixScreen extends StatelessWidget {
@@ -17,6 +18,8 @@ class ReelRemixScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(useAudioOnly ? 'Use This Audio' : 'Remix Reel'),
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

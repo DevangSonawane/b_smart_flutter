@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../theme/instagram_theme.dart';
+import '../widgets/clay_container.dart';
 import 'create_camera_screen.dart';
 import 'create_upload_screen.dart';
 
@@ -33,7 +35,7 @@ class _CreateScreenState extends State<CreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: InstagramTheme.backgroundWhite,
       body: SafeArea(
         child: Column(
           children: [
@@ -63,7 +65,7 @@ class _CreateScreenState extends State<CreateScreen> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: Row(
         children: [
           // Cancel Button
@@ -71,29 +73,32 @@ class _CreateScreenState extends State<CreateScreen> {
             onPressed: () => _showDiscardDialog(),
             child: const Text(
               'Cancel',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(
+                color: InstagramTheme.textBlack,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           Expanded(
             child: Center(
               // Tab Selector
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.grey[800],
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildTabButton('Create New', 0),
-                    _buildTabButton('Upload', 1),
-                  ],
+              child: ClayContainer(
+                borderRadius: 20,
+                color: InstagramTheme.surfaceWhite,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildTabButton('Create New', 0),
+                      _buildTabButton('Upload', 1),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-          // Next Button (hidden for now, shown after media selection)
+          // Placeholder for symmetry
           const SizedBox(width: 60),
         ],
       ),
@@ -104,16 +109,18 @@ class _CreateScreenState extends State<CreateScreen> {
     final isSelected = _selectedTab == index;
     return GestureDetector(
       onTap: () => _onTabChanged(index),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-        ),
+        decoration: isSelected
+            ? InstagramTheme.gradientDecoration(
+                borderRadius: 16,
+              )
+            : null,
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.black : Colors.white,
+            color: isSelected ? InstagramTheme.backgroundWhite : InstagramTheme.textGrey,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 14,
           ),
@@ -125,9 +132,17 @@ class _CreateScreenState extends State<CreateScreen> {
   void _showDiscardDialog() {
     showDialog(
       context: context,
+      barrierColor: InstagramTheme.backgroundWhite.withValues(alpha: 0.7),
       builder: (context) => AlertDialog(
-        title: const Text('Discard Changes?'),
-        content: const Text('Are you sure you want to discard your changes?'),
+        backgroundColor: InstagramTheme.surfaceWhite,
+        title: Text(
+          'Discard Changes?',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        content: Text(
+          'Are you sure you want to discard your changes?',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -136,9 +151,15 @@ class _CreateScreenState extends State<CreateScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              Navigator.of(context).pop();
+              // If pushed, pop. If this is the main screen, maybe switch tab?
+              // For now, assume it's part of navigation or modal.
+              // If it's a tab in HomeDashboard, we can't 'pop' easily without context.
+              // But 'Cancel' usually implies closing the creation mode.
+              // Since this is likely a tab, maybe just reset state?
+              // Or if it was opened as a full screen modal.
+              // Let's assume modal for now or just close dialog.
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: InstagramTheme.errorRed),
             child: const Text('Discard'),
           ),
         ],

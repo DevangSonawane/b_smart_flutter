@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/dummy_data_service.dart';
+import '../theme/instagram_theme.dart';
+import '../widgets/clay_container.dart';
 import 'login_screen.dart';
 import 'content_settings_screen.dart';
+import 'wallet_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -13,11 +16,11 @@ class ProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings),
+            icon: const Icon(Icons.settings_outlined),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -36,42 +39,48 @@ class ProfileScreen extends StatelessWidget {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.blue,
-                    child: Text(
-                      user.name[0].toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 40,
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                  ClayContainer(
+                    width: 100,
+                    height: 100,
+                    borderRadius: 50,
+                    child: Center(
+                      child: Text(
+                        user.name[0].toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 40,
+                          color: InstagramTheme.primaryPink,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     user.name,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   if (user.bio != null) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      user.bio!,
-                      style: TextStyle(color: Colors.grey[600]),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        user.bio!,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                        textAlign: TextAlign.center,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                   const SizedBox(height: 24),
 
                   // Stats
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildStatColumn('Posts', user.posts),
-                      _buildStatColumn('Followers', user.followers),
-                      _buildStatColumn('Following', user.following),
+                      _buildStatColumn(context, 'Posts', user.posts),
+                      _buildStatColumn(context, 'Followers', user.followers),
+                      _buildStatColumn(context, 'Following', user.following),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -80,7 +89,7 @@ class ProfileScreen extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: OutlinedButton(
+                        child: ClayButton(
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -88,12 +97,13 @@ class ProfileScreen extends StatelessWidget {
                               ),
                             );
                           },
+                          color: InstagramTheme.surfaceWhite,
                           child: const Text('Edit Profile'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton(
+                        child: ClayButton(
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -101,9 +111,6 @@ class ProfileScreen extends StatelessWidget {
                               ),
                             );
                           },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                          ),
                           child: const Text('Settings'),
                         ),
                       ),
@@ -113,64 +120,77 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
 
-            const Divider(),
+            const Divider(color: InstagramTheme.dividerGrey),
 
             // Profile Sections
-            _buildProfileSection(
-              icon: Icons.photo_library,
-              title: 'Uploaded Videos & Images',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Media gallery coming soon')),
-                );
-              },
-            ),
-            _buildProfileSection(
-              icon: Icons.ads_click,
-              title: 'Posted Ads',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Posted ads coming soon')),
-                );
-              },
-            ),
-            _buildProfileSection(
-              icon: Icons.account_balance_wallet,
-              title: 'Wallet & Coins',
-              subtitle: '${user.coins} coins',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Wallet: ${user.coins} coins')),
-                );
-              },
-            ),
-            _buildProfileSection(
-              icon: Icons.card_giftcard,
-              title: 'Redeem Rewards',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Rewards coming soon')),
-                );
-              },
-            ),
-            _buildProfileSection(
-              icon: Icons.build,
-              title: 'Tools',
-              subtitle: 'AI features, fonts, colors, auto reply, avatar',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Tools coming soon')),
-                );
-              },
-            ),
-            _buildProfileSection(
-              icon: Icons.help_outline,
-              title: 'Help & Support',
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Help & Support coming soon')),
-                );
-              },
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildProfileSection(
+                    context,
+                    icon: Icons.photo_library_outlined,
+                    title: 'Uploaded Videos & Images',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Media gallery coming soon')),
+                      );
+                    },
+                  ),
+                  _buildProfileSection(
+                    context,
+                    icon: Icons.ads_click,
+                    title: 'Posted Ads',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Posted ads coming soon')),
+                      );
+                    },
+                  ),
+                  _buildProfileSection(
+                    context,
+                    icon: Icons.account_balance_wallet_outlined,
+                    title: 'Wallet & Coins',
+                    subtitle: '${user.coins} coins',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (context) => const WalletScreen()),
+                      );
+                    },
+                  ),
+                  _buildProfileSection(
+                    context,
+                    icon: Icons.card_giftcard,
+                    title: 'Redeem Rewards',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Rewards coming soon')),
+                      );
+                    },
+                  ),
+                  _buildProfileSection(
+                    context,
+                    icon: Icons.build_outlined,
+                    title: 'Tools',
+                    subtitle: 'AI features, fonts, colors, auto reply, avatar',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Tools coming soon')),
+                      );
+                    },
+                  ),
+                  _buildProfileSection(
+                    context,
+                    icon: Icons.help_outline,
+                    title: 'Help & Support',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Help & Support coming soon')),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -178,36 +198,78 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatColumn(String label, int value) {
+  Widget _buildStatColumn(BuildContext context, String label, int value) {
     return Column(
       children: [
         Text(
-          value.toString(),
-          style: const TextStyle(
-            fontSize: 20,
+          _formatCount(value),
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.bold,
+            color: InstagramTheme.primaryPink,
           ),
         ),
+        const SizedBox(height: 4),
         Text(
           label,
-          style: TextStyle(color: Colors.grey[600]),
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
       ],
     );
   }
 
-  Widget _buildProfileSection({
+  String _formatCount(int count) {
+    if (count >= 1000000) {
+      return '${(count / 1000000).toStringAsFixed(1)}M';
+    } else if (count >= 1000) {
+      return '${(count / 1000).toStringAsFixed(1)}K';
+    }
+    return count.toString();
+  }
+
+  Widget _buildProfileSection(
+    BuildContext context, {
     required IconData icon,
     required String title,
     String? subtitle,
     required VoidCallback onTap,
   }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ClayContainer(
+        borderRadius: 16,
+        color: InstagramTheme.surfaceWhite,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(icon, color: InstagramTheme.primaryPink),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: InstagramTheme.textBlack,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: InstagramTheme.textGrey),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -222,96 +284,83 @@ class EditProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Edit Profile'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
-      body: ListView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        children: [
-          Center(
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.blue,
-                  child: Text(
-                    user.name[0].toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 40,
-                      color: Colors.white,
+        child: Column(
+          children: [
+            Center(
+              child: Column(
+                children: [
+                  ClayContainer(
+                    width: 100,
+                    height: 100,
+                    borderRadius: 50,
+                    child: Center(
+                      child: Text(
+                        user.name[0].toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 40,
+                          color: InstagramTheme.primaryPink,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Photo upload coming soon')),
-                    );
-                  },
-                  child: const Text('Change Profile Photo'),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Photo upload coming soon')),
+                      );
+                    },
+                    child: const Text('Change Profile Photo'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          TextFormField(
-            initialValue: user.name,
-            decoration: const InputDecoration(
-              labelText: 'Name',
-              border: OutlineInputBorder(),
+            const SizedBox(height: 32),
+            _buildTextField('Name', user.name),
+            const SizedBox(height: 16),
+            _buildTextField('Bio', user.bio, maxLines: 3),
+            const SizedBox(height: 16),
+            _buildTextField('Email', user.email),
+            const SizedBox(height: 16),
+            _buildTextField('Phone', user.phone),
+            const SizedBox(height: 16),
+            _buildTextField('Address', user.address, maxLines: 2),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ClayButton(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Profile updated')),
+                  );
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Save Changes'),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            initialValue: user.bio,
-            decoration: const InputDecoration(
-              labelText: 'Bio',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 3,
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            initialValue: user.email,
-            decoration: const InputDecoration(
-              labelText: 'Email',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            initialValue: user.phone,
-            decoration: const InputDecoration(
-              labelText: 'Phone',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            initialValue: user.address,
-            decoration: const InputDecoration(
-              labelText: 'Address',
-              border: OutlineInputBorder(),
-            ),
-            maxLines: 2,
-          ),
-          const SizedBox(height: 32),
-          ElevatedButton(
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Profile updated')),
-              );
-              Navigator.of(context).pop();
-            },
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              backgroundColor: Colors.blue,
-            ),
-            child: const Text('Save Changes'),
-          ),
-        ],
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildTextField(String label, String? value, {int maxLines = 1}) {
+    return TextFormField(
+      initialValue: value,
+      style: const TextStyle(color: InstagramTheme.textBlack),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: InstagramTheme.textGrey),
+        prefixIcon: const Icon(Icons.edit_outlined, color: InstagramTheme.textGrey),
+      ),
+      maxLines: maxLines,
     );
   }
 }
@@ -324,15 +373,18 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
+        foregroundColor: InstagramTheme.textBlack,
       ),
       body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
           _buildSettingsSection(
+            context,
             'Preferences',
             [
               _buildSettingsTile(
+                context,
                 Icons.language,
                 'Language / Region',
                 'Default: English',
@@ -343,7 +395,8 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               _buildSettingsTile(
-                Icons.notifications,
+                context,
+                Icons.notifications_outlined,
                 'Notifications',
                 'Manage notifications',
                 () {
@@ -355,10 +408,12 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           _buildSettingsSection(
+            context,
             'Account',
             [
               _buildSettingsTile(
-                Icons.privacy_tip,
+                context,
+                Icons.privacy_tip_outlined,
                 'Privacy',
                 'Privacy settings',
                 () {
@@ -368,6 +423,7 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               _buildSettingsTile(
+                context,
                 Icons.security,
                 'Security',
                 'Password, 2FA',
@@ -378,7 +434,8 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               _buildSettingsTile(
-                Icons.shield,
+                context,
+                Icons.shield_outlined,
                 'Content Settings',
                 'Moderation & restrictions',
                 () {
@@ -392,10 +449,12 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           _buildSettingsSection(
+            context,
             'About',
             [
               _buildSettingsTile(
-                Icons.info,
+                context,
+                Icons.info_outline,
                 'About b Smart',
                 'Version 1.0.0',
                 () {
@@ -407,6 +466,7 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               _buildSettingsTile(
+                context,
                 Icons.help_outline,
                 'Help & Support',
                 'Get help',
@@ -419,73 +479,98 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    _showLogoutDialog(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    minimumSize: const Size(double.infinity, 0),
-                  ),
+          Column(
+            children: [
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ClayButton(
+                  onPressed: () => _showLogoutDialog(context),
+                  color: InstagramTheme.primaryPink,
                   child: const Text('Logout'),
                 ),
-                const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    _showDeleteAccountDialog(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    minimumSize: const Size(double.infinity, 0),
-                  ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ClayButton(
+                  onPressed: () => _showDeleteAccountDialog(context),
+                  color: InstagramTheme.errorRed,
                   child: const Text('Delete Account'),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 32),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsSection(String title, List<Widget> children) {
+  Widget _buildSettingsSection(BuildContext context, String title, List<Widget> children) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.only(left: 8, bottom: 12),
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 18,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: InstagramTheme.primaryPink,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         ...children,
-        const Divider(),
+        const SizedBox(height: 24),
       ],
     );
   }
 
   Widget _buildSettingsTile(
+    BuildContext context,
     IconData icon,
     String title,
     String subtitle,
     VoidCallback onTap,
   ) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ClayContainer(
+        borderRadius: 16,
+        color: InstagramTheme.surfaceWhite,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Icon(icon, color: InstagramTheme.textGrey),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: InstagramTheme.textBlack,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: InstagramTheme.textGrey),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -493,8 +578,10 @@ class SettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
+        backgroundColor: InstagramTheme.surfaceWhite,
+        title: const Text('Logout', style: TextStyle(color: InstagramTheme.textBlack)),
+        content: const Text('Are you sure you want to logout?',
+            style: TextStyle(color: InstagramTheme.textGrey)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -507,7 +594,7 @@ class SettingsScreen extends StatelessWidget {
                 (route) => false,
               );
             },
-            child: const Text('Logout'),
+            child: const Text('Logout', style: TextStyle(color: InstagramTheme.primaryPink)),
           ),
         ],
       ),
@@ -518,9 +605,11 @@ class SettingsScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
+        backgroundColor: InstagramTheme.surfaceWhite,
+        title: const Text('Delete Account', style: TextStyle(color: InstagramTheme.textBlack)),
         content: const Text(
           'Are you sure you want to delete your account? This action cannot be undone.',
+          style: TextStyle(color: InstagramTheme.textGrey),
         ),
         actions: [
           TextButton(
@@ -537,8 +626,7 @@ class SettingsScreen extends StatelessWidget {
                 const SnackBar(content: Text('Account deleted')),
               );
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: const Text('Delete', style: TextStyle(color: InstagramTheme.errorRed)),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/dummy_data_service.dart';
-import '../theme/sci_fi_theme.dart';
+import '../theme/instagram_theme.dart';
+import '../widgets/clay_container.dart';
 import 'instagram_feed_screen.dart';
 import 'ads_page_screen.dart';
 import 'create_screen.dart';
@@ -31,166 +32,97 @@ class _HomeDashboardState extends State<HomeDashboard> {
   }
 
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
     await _dataService.fetchAds();
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: SciFiTheme.backgroundGradient,
-        ),
-        child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(
-                      SciFiTheme.accentCyan),
-                ),
-              )
-            : IndexedStack(
-                index: _currentIndex,
-                children: [
-                  const InstagramFeedScreen(),
-                  const AdsPageScreen(),
-                  const CreateScreen(),
-                  const ReelsScreen(),
-                  const PromotedProductsScreen(),
-                ],
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(InstagramTheme.primaryPink),
               ),
-      ),
-      bottomNavigationBar: _buildSciFiNavigationBar(),
-    );
-  }
-
-  Widget _buildSciFiNavigationBar() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: SciFiTheme.cardGradient,
-        boxShadow: [
-          BoxShadow(
-            color: SciFiTheme.accentCyan.withValues(alpha: 0.2),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: SizedBox(
-            height: 56,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+            )
+          : IndexedStack(
+              index: _currentIndex,
               children: [
-                _buildNavItem(Icons.home, 'Home', 0),
-                _buildNavItem(Icons.ads_click, 'Ads', 1),
-                _buildNavItem(Icons.add_circle_outline, 'Create', 2, isCenter: true),
-                _buildNavItem(Icons.video_library, 'Reels', 3),
-                _buildNavItem(Icons.shopping_bag, 'Products', 4),
+                const InstagramFeedScreen(),
+                const AdsPageScreen(),
+                const CreateScreen(),
+                const ReelsScreen(),
+                const PromotedProductsScreen(),
               ],
             ),
-          ),
+      bottomNavigationBar: _buildClayNavigationBar(),
+    );
+  }
+
+  Widget _buildClayNavigationBar() {
+    return Container(
+      color: InstagramTheme.backgroundWhite, // Match scaffold
+      padding: const EdgeInsets.only(bottom: 20, left: 16, right: 16, top: 10),
+      child: ClayContainer(
+        height: 70,
+        borderRadius: 35,
+        color: InstagramTheme.surfaceWhite,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildNavItem(Icons.home_rounded, 0),
+            _buildNavItem(Icons.campaign_rounded, 1),
+            _buildCenterNavItem(),
+            _buildNavItem(Icons.video_library_rounded, 3),
+            _buildNavItem(Icons.shopping_bag_rounded, 4),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index,
-      {bool isCenter = false}) {
+  Widget _buildNavItem(IconData icon, int index) {
     final isSelected = _currentIndex == index;
-    final size = MediaQuery.of(context).size;
-    final isTablet = size.width > 600;
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(10),
+        decoration: isSelected
+            ? InstagramTheme.cardDecoration(
+                color: InstagramTheme.backgroundGrey,
+                borderRadius: 20,
+                hasBorder: false,
+              )
+            : null,
+        child: Icon(
+          icon,
+          color: isSelected ? InstagramTheme.primaryPink : InstagramTheme.textGrey,
+          size: 26,
+        ),
+      ),
+    );
+  }
 
-    if (isCenter) {
-      return GestureDetector(
-        onTap: () {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        child: SizedBox(
-          width: isTablet ? 56 : 52,
-          height: 56,
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: isSelected
-                  ? SciFiTheme.accentGradient
-                  : SciFiTheme.cardGradient,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: SciFiTheme.accentCyan,
-                width: 2,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: SciFiTheme.accentCyan.withValues(alpha: 0.5),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      ),
-                    ]
-                  : null,
-            ),
+  Widget _buildCenterNavItem() {
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = 2),
+      child: ClayContainer(
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        child: Container(
+          decoration: InstagramTheme.gradientDecoration(
+            borderRadius: 25,
+          ),
+          child: const Center(
             child: Icon(
-              icon,
-              color: SciFiTheme.textPrimary,
-              size: isTablet ? 28 : 26,
+              Icons.add,
+              color: InstagramTheme.textBlack,
+              size: 30,
             ),
           ),
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          gradient: isSelected ? SciFiTheme.accentGradient : null,
-          borderRadius: BorderRadius.circular(12),
-          border: isSelected
-              ? null
-              : Border.all(
-                  color: SciFiTheme.accentCyan.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              color: isSelected
-                  ? SciFiTheme.textPrimary
-                  : SciFiTheme.textSecondary,
-              size: isTablet ? 22 : 20,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected
-                    ? SciFiTheme.textPrimary
-                    : SciFiTheme.textSecondary,
-                fontSize: isTablet ? 11 : 9,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 1,
-            ),
-          ],
         ),
       ),
     );
