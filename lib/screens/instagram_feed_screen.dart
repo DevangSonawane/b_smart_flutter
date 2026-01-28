@@ -236,13 +236,19 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
               children: [
                 const Icon(Icons.monetization_on, color: InstagramTheme.primaryPink, size: 16),
                 const SizedBox(width: 4),
-                Text(
-                  '${_walletService.getCoinBalance()}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: InstagramTheme.textBlack,
-                    fontSize: 12,
-                  ),
+                FutureBuilder<int>(
+                  future: _walletService.getCoinBalance(),
+                  initialData: 0,
+                  builder: (context, snapshot) {
+                    return Text(
+                      '${snapshot.data ?? 0}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: InstagramTheme.textBlack,
+                        fontSize: 12,
+                      ),
+                    );
+                  }
                 ),
               ],
             ),
@@ -282,34 +288,51 @@ class _InstagramFeedScreenState extends State<InstagramFeedScreen> {
         margin: const EdgeInsets.only(right: 16),
         child: Column(
           children: [
-            ClayContainer(
-              width: 74,
-              height: 74,
-              borderRadius: 37,
-              color: InstagramTheme.surfaceWhite,
-              child: Center(
-                child: Container(
-                  width: 66,
-                  height: 66,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    image: DecorationImage(
-                      image: NetworkImage('https://via.placeholder.com/150'), // Replace with actual
-                      fit: BoxFit.cover,
-                    ),
-                  ),
+            Stack(
+              children: [
+                ClayContainer(
+                  width: 74,
+                  height: 74,
+                  borderRadius: 37,
+                  color: InstagramTheme.surfaceWhite,
                   child: Center(
-                    child: Text(
-                      storyGroup.userName[0].toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                    child: Container(
+                      width: 66,
+                      height: 66,
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: DecorationImage(
+                          image: NetworkImage('https://via.placeholder.com/150'), // Replace with actual
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          storyGroup.userName[0].toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+                Positioned(
+                  right: 4,
+                  bottom: 4,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      color: Colors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: InstagramTheme.surfaceWhite, width: 2),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(

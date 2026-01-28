@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/dummy_data_service.dart';
 import '../theme/instagram_theme.dart';
 import '../widgets/clay_container.dart';
-import 'login_screen.dart';
+import 'auth/login/login_screen.dart';
 import 'content_settings_screen.dart';
 import 'wallet_screen.dart';
 
@@ -24,7 +24,7 @@ class ProfileScreen extends StatelessWidget {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const SettingsScreen(),
+                  builder: (context) => const ContentSettingsScreen(),
                 ),
               );
             },
@@ -107,7 +107,7 @@ class ProfileScreen extends StatelessWidget {
                           onPressed: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (context) => const SettingsScreen(),
+                                builder: (context) => const ContentSettingsScreen(),
                               ),
                             );
                           },

@@ -25,11 +25,15 @@ class _WalletScreenState extends State<WalletScreen> {
     _loadBalance();
   }
 
-  void _loadBalance() {
-    setState(() {
-      _coinBalance = _walletService.getCoinBalance();
-      _equivalentValue = _walletService.getEquivalentValue();
-    });
+  Future<void> _loadBalance() async {
+    final balance = await _walletService.getCoinBalance();
+    final value = await _walletService.getEquivalentValue();
+    if (mounted) {
+      setState(() {
+        _coinBalance = balance;
+        _equivalentValue = value;
+      });
+    }
   }
 
   @override

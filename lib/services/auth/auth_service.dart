@@ -1,408 +1,402 @@
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
-import '../../models/auth/auth_user_model.dart';
+import 'dart:math';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../../models/auth/auth_user_model.dart' as model;
 import '../../models/auth/signup_session_model.dart';
-import '../../models/auth/jwt_token_model.dart';
+import '../../utils/validators.dart';
 import '../../utils/constants.dart';
-import 'jwt_service.dart';
-import 'otp_service.dart';
-import 'device_service.dart';
-import 'google_auth_service.dart';
+import '../../config/supabase_config.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
 
-  final JWTService _jwtService = JWTService();
-  final OTPService _otpService = OTPService();
-  final DeviceService _deviceService = DeviceService();
-  final GoogleAuthService _googleAuth = GoogleAuthService();
+  final SupabaseClient _supabase = Supabase.instance.client;
+  // final GoogleSignIn _googleSignIn = GoogleSignIn(
+  //   serverClientId: SupabaseConfig.googleWebClientId,
+  //   scopes: const ['email', 'openid', 'profile'],
+  // );
+  final GoogleSignIn _googleSignIn = GoogleSignIn(
+  serverClientId:
+      '832065490130-97j2a560l5e30p3tu90j9miqfdkdctlv.apps.googleusercontent.com',
+  scopes: const ['email', 'profile'],
+);
 
-  AuthUser? _currentUser;
-  final Map<String, DateTime> _loginAttempts = {};
-
-  // Mock data storage
-  final Map<String, Map<String, dynamic>> _mockUsers = {};
-  final Map<String, Map<String, dynamic>> _mockSignupSessions = {};
-  final Map<String, String> _mockPasswords = {}; // email/phone -> password hash
-  final Map<String, String> _mockUsernames = {}; // username -> userId
+  // In-memory storage for signup sessions during the flow
+  final Map<String, SignupSession> _sessions = {};
 
   AuthService._internal();
 
-  // Helper method to create and login with a default mock user
-  Future<AuthUser> _createAndLoginMockUser({
-    String? email,
-    String? phone,
-    String? username,
-  }) async {
-    final userId = _generateSessionToken();
-    final now = DateTime.now();
-    final defaultUsername = username ?? 'user_${userId.substring(0, 8)}';
-    
-    final userData = {
-      'id': userId,
-      'username': defaultUsername,
-      'email': email,
-      'phone': phone,
-      'full_name': 'Test User',
-      'date_of_birth': '2000-01-01',
-      'is_under_18': false,
-      'avatar_url': null,
-      'bio': null,
-      'is_active': true,
-      'created_at': now.toIso8601String(),
-      'updated_at': now.toIso8601String(),
-    };
-
-    _mockUsers[userId] = userData;
-    if (defaultUsername.isNotEmpty) {
-      _mockUsernames[defaultUsername.toLowerCase()] = userId;
-    }
-
-    final user = AuthUser.fromJson(userData);
-    await _performLogin(user, email != null ? IdentifierType.email : (phone != null ? IdentifierType.phone : IdentifierType.google));
-    
-    return user;
-  }
-
   // ==================== SIGNUP METHODS ====================
 
-  // Signup with email - Step 1 (Skip all steps, login immediately)
+  // Signup with email - Step 1
   Future<SignupSession> signupWithEmail(String email, String password) async {
-    // Skip all steps - just create user and login
-    await _createAndLoginMockUser(email: email);
+    // Check if user already exists (optional, but Supabase signUp will return error/existing user)
+    // For now, we just start a session.
     
-    // Return a dummy session for compatibility
     final sessionToken = _generateSessionToken();
-    final sessionData = {
-      'id': sessionToken,
-      'session_token': sessionToken,
-      'identifier_type': 'email',
-      'identifier_value': email,
-      'verification_status': 'verified',
-      'step': 5,
-      'metadata': jsonEncode({'email': email}),
-      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-      'created_at': DateTime.now().toIso8601String(),
-    };
-    return SignupSession.fromJson(sessionData);
+    final now = DateTime.now();
+    
+    final session = SignupSession(
+      id: sessionToken,
+      sessionToken: sessionToken,
+      identifierType: IdentifierType.email,
+      identifierValue: email,
+      verificationStatus: VerificationStatus.pending, // We'll skip OTP for now or mark verified
+      step: 1,
+      metadata: {
+        'email': email,
+        'password': password, // Storing temporarily in memory
+      },
+      createdAt: now,
+      expiresAt: now.add(const Duration(hours: 1)),
+    );
+    
+    _sessions[sessionToken] = session;
+    return session;
   }
 
-  // Signup with phone - Step 1 (Skip all steps, login immediately)
+  // Signup with phone - Step 1
   Future<SignupSession> signupWithPhone(String phone) async {
-    // Skip all steps - just create user and login
-    await _createAndLoginMockUser(phone: phone);
-    
-    // Return a dummy session for compatibility
     final sessionToken = _generateSessionToken();
-    final sessionData = {
-      'id': sessionToken,
-      'session_token': sessionToken,
-      'identifier_type': 'phone',
-      'identifier_value': phone,
-      'verification_status': 'verified',
-      'step': 5,
-      'metadata': jsonEncode({'phone': phone}),
-      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-      'created_at': DateTime.now().toIso8601String(),
-    };
-    return SignupSession.fromJson(sessionData);
+    final now = DateTime.now();
+    
+    final session = SignupSession(
+      id: sessionToken,
+      sessionToken: sessionToken,
+      identifierType: IdentifierType.phone,
+      identifierValue: phone,
+      verificationStatus: VerificationStatus.pending,
+      step: 1,
+      metadata: {
+        'phone': phone,
+      },
+      createdAt: now,
+      expiresAt: now.add(const Duration(hours: 1)),
+    );
+    
+    _sessions[sessionToken] = session;
+    return session;
   }
 
-  // Signup with Google - Step 1 (Skip all steps, login immediately)
+  // Signup with Google - Step 1
   Future<SignupSession> signupWithGoogle() async {
     try {
-      await _googleAuth.signIn();
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        throw Exception('Google sign in cancelled');
+      }
+      
+      final googleAuth = await googleUser.authentication;
+      final accessToken = googleAuth.accessToken;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) {
+        throw Exception('No ID Token found.');
+      }
+
+      final response = await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+      
+      if (response.user == null) {
+        throw Exception('Supabase sign in failed');
+      }
+
+      final sessionToken = _generateSessionToken();
+      final now = DateTime.now();
+      
+      final session = SignupSession(
+        id: sessionToken,
+        sessionToken: sessionToken,
+        identifierType: IdentifierType.google,
+        identifierValue: response.user!.email ?? '',
+        verificationStatus: VerificationStatus.verified,
+        step: 1,
+        metadata: {
+          'email': response.user!.email,
+          'full_name': response.user!.userMetadata?['full_name'],
+          'avatar_url': response.user!.userMetadata?['avatar_url'],
+        },
+        createdAt: now,
+        expiresAt: now.add(const Duration(hours: 1)),
+      );
+      
+      _sessions[sessionToken] = session;
+      return session;
     } catch (e) {
-      // If Google sign-in fails, continue anyway
+      throw Exception('Google sign up failed: $e');
     }
-    
-    // Skip all steps - just create user and login
-    await _createAndLoginMockUser(email: 'user@example.com');
-    
-    // Return a dummy session for compatibility
-    final sessionToken = _generateSessionToken();
-    final sessionData = {
-      'id': sessionToken,
-      'session_token': sessionToken,
-      'identifier_type': 'google',
-      'identifier_value': 'user@example.com',
-      'verification_status': 'verified',
-      'step': 5,
-      'metadata': jsonEncode({'email': 'user@example.com'}),
-      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-      'created_at': DateTime.now().toIso8601String(),
-    };
-    return SignupSession.fromJson(sessionData);
   }
 
-  // Verify OTP - Step 2 (Skip OTP check)
+  // Verify OTP - Step 2
   Future<SignupSession> verifyOTP(String sessionToken, String otp) async {
-    // Skip OTP verification - just return verified session
-    final session = _mockSignupSessions[sessionToken];
-    if (session != null) {
-      session['verification_status'] = 'verified';
-      session['step'] = 3;
-      return SignupSession.fromJson(session);
-    }
+    final session = _sessions[sessionToken];
+    if (session == null) throw Exception('Session not found');
+
+    // For this implementation, we are skipping actual OTP verification for email/phone 
+    // because we want to create the user at the end with all details.
+    // If we wanted real OTP, we'd have to use Supabase's verifyOTP, but that requires a user to exist 
+    // or a specific OTP flow.
+    // We'll assume the client is just simulating the flow or we skip it.
     
-    // If no session, create a dummy one
-    final sessionData = {
-      'id': sessionToken,
-      'session_token': sessionToken,
-      'identifier_type': 'email',
-      'identifier_value': 'user@example.com',
-      'verification_status': 'verified',
-      'step': 3,
-      'metadata': jsonEncode({'email': 'user@example.com'}),
-      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-      'created_at': DateTime.now().toIso8601String(),
-    };
-    return SignupSession.fromJson(sessionData);
+    // In a real app with Supabase, you might use 'signUp' (which sends email) then 'verifyOTP'.
+    // But here we are collecting info first.
+    
+    final updatedSession = SignupSession(
+      id: session.id,
+      sessionToken: session.sessionToken,
+      identifierType: session.identifierType,
+      identifierValue: session.identifierValue,
+      otpCode: otp,
+      verificationStatus: VerificationStatus.verified,
+      step: 2,
+      metadata: session.metadata,
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
+    );
+    
+    _sessions[sessionToken] = updatedSession;
+    return updatedSession;
   }
 
-  // Complete signup - Steps 3-5 (Skip all checks, login immediately)
-  Future<AuthUser> completeSignup(
+  // Update session metadata (used in Account Setup)
+  Future<void> updateSignupSession(String sessionToken, Map<String, dynamic> updates) async {
+    final session = _sessions[sessionToken];
+    if (session == null) throw Exception('Session not found');
+
+    final newMetadata = Map<String, dynamic>.from(session.metadata);
+    if (updates.containsKey('metadata')) {
+      newMetadata.addAll(updates['metadata']);
+    }
+
+    final updatedSession = SignupSession(
+      id: session.id,
+      sessionToken: session.sessionToken,
+      identifierType: session.identifierType,
+      identifierValue: session.identifierValue,
+      verificationStatus: session.verificationStatus,
+      step: updates['step'] ?? session.step,
+      metadata: newMetadata,
+      createdAt: session.createdAt,
+      expiresAt: session.expiresAt,
+    );
+
+    _sessions[sessionToken] = updatedSession;
+  }
+
+  // Check username availability
+  Future<bool> checkUsernameAvailability(String username) async {
+    // Check against public.users table
+    final response = await _supabase
+        .from('users')
+        .select('username')
+        .eq('username', username)
+        .maybeSingle();
+        
+    return response == null;
+  }
+
+  // Complete signup - Final Step
+  Future<model.AuthUser> completeSignup(
     String sessionToken,
     String username,
     String? fullName,
     String? password,
     DateTime dateOfBirth,
   ) async {
-    // Skip all checks - just create user and login
-    return await _createAndLoginMockUser(username: username);
+    final session = _sessions[sessionToken];
+    if (session == null) throw Exception('Session not found');
+
+    try {
+      User? user;
+      final isUnder18 = Validators.calculateAge(dateOfBirth) < AuthConstants.restrictedAge;
+      
+      if (session.identifierType == IdentifierType.google) {
+        // User already exists (signed in via Google)
+        // Update their metadata
+        final currentUser = _supabase.auth.currentUser;
+        if (currentUser == null) throw Exception('User not authenticated');
+        
+        final updates = {
+          'username': username,
+          'full_name': fullName,
+          'dob': dateOfBirth.toIso8601String(),
+          'is_under_18': isUnder18,
+          // Trigger expects 'phone' if we have it
+          if (session.metadata['phone'] != null) 'phone': session.metadata['phone'],
+        };
+        
+        final response = await _supabase.auth.updateUser(
+          UserAttributes(data: updates),
+        );
+        user = response.user;
+        
+        // Also ensure public.users is updated (trigger might have run on creation, but we have new data now)
+        // The trigger runs on INSERT. For UPDATE, we might need to manually update public.users
+        await _supabase.from('users').upsert({
+          'id': currentUser.id,
+          'username': username,
+          'full_name': fullName,
+          'date_of_birth': dateOfBirth.toIso8601String(),
+          'is_under_18': isUnder18,
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        
+      } else {
+        // Email/Password Signup
+        // Now we actually create the user in Supabase
+        final email = session.metadata['email'];
+        final phone = session.metadata['phone'];
+        final pass = password ?? session.metadata['password']; // Get from args or metadata
+        
+        if (email != null) {
+          final response = await _supabase.auth.signUp(
+            email: email,
+            password: pass,
+            data: {
+              'username': username,
+              'full_name': fullName,
+              'phone': phone,
+              'dob': dateOfBirth.toIso8601String(),
+              'is_under_18': isUnder18,
+            },
+          );
+          user = response.user;
+        } else if (phone != null) {
+           // Phone signup not fully implemented in this snippet, using email as primary
+           throw Exception('Phone signup requires Supabase Phone Auth configuration');
+        }
+      }
+
+      if (user == null) throw Exception('Signup failed');
+
+      // Return AuthUser model
+      return model.AuthUser(
+        id: user.id,
+        username: username,
+        email: user.email,
+        phone: user.phone,
+        fullName: fullName,
+        dateOfBirth: dateOfBirth,
+        isUnder18: isUnder18,
+        avatarUrl: user.userMetadata?['avatar_url'],
+        bio: null,
+        isActive: true,
+        createdAt: DateTime.parse(user.createdAt),
+        updatedAt: DateTime.parse(user.updatedAt ?? user.createdAt),
+      );
+    } catch (e) {
+      throw Exception('Signup failed: $e');
+    }
   }
 
   // ==================== LOGIN METHODS ====================
 
-  // Login with email (Skip all checks, login immediately)
-  Future<AuthUser> loginWithEmail(String email, String password) async {
-    // Skip all checks - just create user and login
-    return await _createAndLoginMockUser(email: email);
-  }
-
-  // Login with username (Skip all checks, login immediately)
-  Future<AuthUser> loginWithUsername(String username, String password) async {
-    // Skip all checks - just create user and login
-    return await _createAndLoginMockUser(username: username);
-  }
-
-  // Login with phone (Skip all checks, login immediately)
-  Future<SignupSession> loginWithPhone(String phone) async {
-    // Skip all checks - just create user and login
-    await _createAndLoginMockUser(phone: phone);
-    
-    // Return a dummy session for compatibility
-    final sessionToken = _generateSessionToken();
-    final sessionData = {
-      'id': sessionToken,
-      'session_token': sessionToken,
-      'identifier_type': 'phone',
-      'identifier_value': phone,
-      'verification_status': 'verified',
-      'step': 5,
-      'metadata': jsonEncode({'phone': phone, 'is_login': true}),
-      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
-      'created_at': DateTime.now().toIso8601String(),
-    };
-    return SignupSession.fromJson(sessionData);
-  }
-
-  // Complete phone login after OTP verification (Skip OTP check)
-  Future<AuthUser> completePhoneLogin(String sessionToken, String otp) async {
-    // Skip OTP verification - just create user and login
-    return await _createAndLoginMockUser(phone: '1234567890');
-  }
-
-  // Login with Google (Skip all checks, login immediately)
-  Future<AuthUser> loginWithGoogle() async {
+  Future<model.AuthUser> loginWithEmail(String email, String password) async {
     try {
-      await _googleAuth.signIn();
+      final response = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      
+      if (response.user == null) throw Exception('Login failed');
+      
+      return await _fetchUserProfile(response.user!);
     } catch (e) {
-      // If Google sign-in fails, continue anyway
+      throw Exception('Login failed: ${e.toString()}');
     }
-    
-    // Skip all checks - just create user and login
-    return await _createAndLoginMockUser(email: 'user@example.com');
   }
 
-  // ==================== SESSION MANAGEMENT ====================
-
-  // Perform login (create tokens, device session)
-  Future<void> _performLogin(AuthUser user, IdentifierType providerType) async {
-    final deviceInfo = await _deviceService.getDeviceInfo();
-
-    // Create JWT tokens (in real implementation, this would come from backend)
-    // For now, we'll use a locally generated token that includes device_id
-    final accessToken = _generateToken(
-      user.id,
-      user.username,
-      providerType,
-      deviceId: deviceInfo.deviceId,
-    );
-    final refreshToken = _generateToken(
-      user.id,
-      user.username,
-      providerType,
-      isRefresh: true,
-      deviceId: deviceInfo.deviceId,
-    );
-
-    final jwtToken = JWTToken(
-      accessToken: accessToken,
-      refreshToken: refreshToken,
-      accessTokenExpiresAt: DateTime.now().add(AuthConstants.accessTokenExpiry),
-      refreshTokenExpiresAt: DateTime.now().add(AuthConstants.refreshTokenExpiry),
-      deviceId: deviceInfo.deviceId,
-    );
-
-    await _jwtService.storeTokens(jwtToken);
-
-    // TODO: Implement backend integration to store refresh token
-    // await backend.insertRefreshToken({
-    //   'user_id': user.id,
-    //   'token': refreshToken,
-    //   'device_id': deviceInfo.deviceId,
-    //   'device_fingerprint': deviceInfo.deviceFingerprint,
-    //   'ip_address': deviceInfo.ipAddress,
-    //   'user_agent': deviceInfo.userAgent,
-    //   'expires_at': jwtToken.refreshTokenExpiresAt.toIso8601String(),
-    // });
-
-    // Create/update device session
-    await _deviceService.getOrCreateDeviceSession(user.id);
-
-    _currentUser = user;
-  }
-
-  // Refresh access token
-  Future<JWTToken> refreshAccessToken() async {
-    final result = await _jwtService.refreshAccessToken();
-    if (result == null) {
-      throw Exception(AuthConstants.tokenExpired);
-    }
-    return result;
-  }
-
-  // Logout
-  Future<void> logout() async {
-    final userId = await _jwtService.getCurrentUserId();
-    if (userId != null) {
-      // TODO: Implement backend integration to revoke user tokens
-      // await backend.revokeAllUserTokens(userId, keepDeviceId: deviceId);
-    }
-    await _jwtService.clearTokens();
-    _currentUser = null;
-  }
-
-  // Get current user
-  Future<AuthUser?> getCurrentUser() async {
-    if (_currentUser != null) {
-      return _currentUser;
-    }
-    final userId = await _jwtService.getCurrentUserId();
-    if (userId == null) {
-      return null;
-    }
-    // Get user from mock storage
-    final userData = _mockUsers[userId];
-    if (userData == null) {
-      return null;
-    }
-    _currentUser = AuthUser.fromJson(userData);
-    return _currentUser;
-  }
-
-  // Check if authenticated
-  Future<bool> isAuthenticated() async {
-    return await _jwtService.isAuthenticated();
-  }
-
-  // Check username availability (for mock)
-  Future<bool> checkUsernameAvailability(String username) async {
-    return !_mockUsernames.containsKey(username.toLowerCase());
-  }
-
-  // Update signup session (for mock)
-  Future<void> updateSignupSession(String sessionToken, Map<String, dynamic> updates) async {
-    final session = _mockSignupSessions[sessionToken];
-    if (session != null) {
-      session.addAll(updates);
-      // If metadata is being updated, merge it properly
-      if (updates.containsKey('metadata') && updates['metadata'] is Map) {
-        final existingMetadata = session['metadata'];
-        final existingMap = existingMetadata is Map<String, dynamic>
-            ? existingMetadata
-            : (existingMetadata is String
-                ? jsonDecode(existingMetadata) as Map<String, dynamic>
-                : {});
-        final newMetadata = Map<String, dynamic>.from(existingMap);
-        newMetadata.addAll(updates['metadata'] as Map<String, dynamic>);
-        session['metadata'] = jsonEncode(newMetadata);
+  Future<model.AuthUser> loginWithUsername(String username, String password) async {
+    try {
+      // 1. Get email for username
+      final email = await _supabase.rpc('get_email_by_username', params: {'username_input': username});
+      
+      if (email == null) {
+        throw Exception('Username not found');
       }
+
+      // 2. Sign in with email/password
+      final response = await _supabase.auth.signInWithPassword(
+        email: email as String,
+        password: password,
+      );
+      
+      if (response.user == null) throw Exception('Login failed');
+      
+      return await _fetchUserProfile(response.user!);
+    } catch (e) {
+      throw Exception('Login failed: ${e.toString()}');
     }
   }
 
-  // ==================== HELPER METHODS ====================
+  Future<SignupSession> loginWithPhone(String phone) async {
+    // Stub for phone login
+    throw Exception('Phone login is not currently supported. Please use Email or Google.');
+  }
 
+  Future<void> completePhoneLogin(String sessionToken, String otp) async {
+    throw Exception('Phone login is not currently supported.');
+  }
+  
+  Future<void> loginWithGoogle() async {
+     try {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) throw Exception('Google sign in cancelled');
+      
+      final googleAuth = await googleUser.authentication;
+      final accessToken = googleAuth.accessToken;
+      final idToken = googleAuth.idToken;
+
+      if (idToken == null) throw Exception('No ID Token found');
+
+      final response = await _supabase.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+      
+      if (response.user == null) throw Exception('Supabase sign in failed');
+    } catch (e) {
+      throw Exception('Google login failed: $e');
+    }
+  }
+
+  // Fetch user profile from public.users
+  Future<model.AuthUser> _fetchUserProfile(User user) async {
+    try {
+      final data = await _supabase
+          .from('users')
+          .select()
+          .eq('id', user.id)
+          .single();
+          
+      return model.AuthUser.fromJson(data);
+    } catch (e) {
+      // Fallback if profile doesn't exist (shouldn't happen with trigger)
+      return model.AuthUser(
+        id: user.id,
+        username: user.userMetadata?['username'] ?? 'user',
+        email: user.email,
+        phone: user.phone,
+        fullName: user.userMetadata?['full_name'],
+        dateOfBirth: DateTime(2000), // Default
+        isUnder18: false,
+        avatarUrl: user.userMetadata?['avatar_url'],
+        bio: null,
+        isActive: true,
+        createdAt: DateTime.parse(user.createdAt),
+        updatedAt: DateTime.now(),
+      );
+    }
+  }
+
+  // Helper
   String _generateSessionToken() {
-    final random = DateTime.now().millisecondsSinceEpoch.toString();
-    final bytes = utf8.encode(random);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-  }
-
-  String _generateToken(
-    String userId,
-    String username,
-    IdentifierType providerType, {
-    bool isRefresh = false,
-    String? deviceId,
-  }) {
-    // In real implementation, this would be generated by backend
-    // For now, create a simple token
-    final payload = {
-      'user_id': userId,
-      'username': username,
-      'auth_provider': _identifierTypeToProviderType(providerType),
-      if (deviceId != null) 'device_id': deviceId,
-      'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      'exp': (DateTime.now().add(isRefresh ? AuthConstants.refreshTokenExpiry : AuthConstants.accessTokenExpiry))
-          .millisecondsSinceEpoch ~/ 1000,
-    };
-
-    return base64Url.encode(utf8.encode(jsonEncode(payload)));
-  }
-
-  String _hashPassword(String password) {
-    final bytes = utf8.encode(password);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
-    // Note: In production, use Argon2
-  }
-
-  String _identifierTypeToProviderType(IdentifierType type) {
-    switch (type) {
-      case IdentifierType.email:
-        return 'email';
-      case IdentifierType.phone:
-        return 'phone';
-      case IdentifierType.google:
-        return 'google';
-    }
-  }
-
-  void _checkRateLimit(String identifier) {
-    final attempts = _loginAttempts[identifier];
-    if (attempts != null) {
-      final timeSinceLastAttempt = DateTime.now().difference(attempts);
-      if (timeSinceLastAttempt < AuthConstants.loginAttemptWindow) {
-        throw Exception('Too many login attempts. Please try again later.');
-      }
-    }
-  }
-
-  void _recordFailedAttempt(String identifier) {
-    _loginAttempts[identifier] = DateTime.now();
+    return DateTime.now().millisecondsSinceEpoch.toString() + 
+           (1000 + Random().nextInt(9000)).toString();
   }
 }

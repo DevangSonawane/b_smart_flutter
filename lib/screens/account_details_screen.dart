@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/wallet_service.dart';
-import '../models/wallet_model.dart';
+import '../models/account_details_model.dart';
 import '../theme/instagram_theme.dart';
 
 class AccountDetailsScreen extends StatefulWidget {

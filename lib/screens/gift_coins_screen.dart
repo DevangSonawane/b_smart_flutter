@@ -22,11 +22,13 @@ class _GiftCoinsScreenState extends State<GiftCoinsScreen> {
   User? _selectedUser;
   final TextEditingController _amountController = TextEditingController();
   bool _isLoading = false;
+  int _currentBalance = 0;
 
   @override
   void initState() {
     super.initState();
     _loadUsers();
+    _loadBalance();
   }
 
   @override
@@ -40,6 +42,15 @@ class _GiftCoinsScreenState extends State<GiftCoinsScreen> {
     setState(() {
       _users = _dataService.getOnlineUsers();
     });
+  }
+
+  Future<void> _loadBalance() async {
+    final balance = await _walletService.getCoinBalance();
+    if (mounted) {
+      setState(() {
+        _currentBalance = balance;
+      });
+    }
   }
 
   Future<void> _sendGift() async {
@@ -64,7 +75,7 @@ class _GiftCoinsScreenState extends State<GiftCoinsScreen> {
       return;
     }
 
-    if (!_walletService.hasSufficientBalance(amount)) {
+    if (!await _walletService.hasSufficientBalance(amount)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Insufficient balance'),
@@ -108,6 +119,9 @@ class _GiftCoinsScreenState extends State<GiftCoinsScreen> {
       );
 
       if (success) {
+        // Refresh balance
+        await _loadBalance();
+
         // In real app, the server would:
         // 1. Deduct coins from sender
         // 2. Add coins to receiver
@@ -146,15 +160,15 @@ class _GiftCoinsScreenState extends State<GiftCoinsScreen> {
       }
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentBalance = _walletService.getCoinBalance();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Gift Coins'),
@@ -190,7 +204,7 @@ class _GiftCoinsScreenState extends State<GiftCoinsScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '$currentBalance coins',
+                        '$_currentBalance coins',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,

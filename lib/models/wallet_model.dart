@@ -1,75 +1,39 @@
-enum TransactionType {
-  adReward,
-  giftReceived,
-  giftSent,
-}
-
-enum TransactionStatus {
-  completed,
-  pending,
-  failed,
-}
-
-class CoinTransaction {
+class Wallet {
   final String id;
-  final TransactionType type;
-  final int amount; // Positive for earned/received, negative for sent
-  final DateTime timestamp;
-  final TransactionStatus status;
-  final String? description;
-  final String? relatedUserId; // For gift transactions
-
-  CoinTransaction({
-    required this.id,
-    required this.type,
-    required this.amount,
-    required this.timestamp,
-    this.status = TransactionStatus.completed,
-    this.description,
-    this.relatedUserId,
-  });
-}
-
-class AccountDetails {
-  final String id;
-  final String accountHolderName;
-  final String paymentMethod; // 'Bank', 'UPI', 'PayPal', etc.
-  final String accountNumber; // Account number or UPI ID
-  final String? bankName;
-  final String? ifscCode;
+  final String userId;
+  final double balance;
+  final String currency;
   final DateTime createdAt;
-  final DateTime? updatedAt;
+  final DateTime updatedAt;
 
-  AccountDetails({
+  Wallet({
     required this.id,
-    required this.accountHolderName,
-    required this.paymentMethod,
-    required this.accountNumber,
-    this.bankName,
-    this.ifscCode,
+    required this.userId,
+    required this.balance,
+    required this.currency,
     required this.createdAt,
-    this.updatedAt,
+    required this.updatedAt,
   });
 
-  AccountDetails copyWith({
-    String? id,
-    String? accountHolderName,
-    String? paymentMethod,
-    String? accountNumber,
-    String? bankName,
-    String? ifscCode,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return AccountDetails(
-      id: id ?? this.id,
-      accountHolderName: accountHolderName ?? this.accountHolderName,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
-      accountNumber: accountNumber ?? this.accountNumber,
-      bankName: bankName ?? this.bankName,
-      ifscCode: ifscCode ?? this.ifscCode,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
+  factory Wallet.fromJson(Map<String, dynamic> json) {
+    return Wallet(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      balance: (json['balance'] as num).toDouble(),
+      currency: json['currency'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'balance': balance,
+      'currency': currency,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
   }
 }

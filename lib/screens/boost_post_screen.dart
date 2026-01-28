@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/boost_model.dart';
 import '../services/boost_service.dart';
 import '../services/user_account_service.dart';
@@ -21,7 +22,7 @@ class BoostPostScreen extends StatefulWidget {
 class _BoostPostScreenState extends State<BoostPostScreen> {
   final BoostService _boostService = BoostService();
   final UserAccountService _accountService = UserAccountService();
-  final String _userId = 'user-1';
+  final String _userId = Supabase.instance.client.auth.currentUser?.id ?? 'user-1';
 
   BoostDuration? _selectedDuration;
   BoostEligibilityResult? _eligibilityResult;

@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/auth/login/login_screen.dart';
 import 'screens/home_dashboard.dart';
 import 'theme/instagram_theme.dart';
-import 'services/auth/jwt_service.dart';
+import 'config/supabase_config.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Supabase
+  await Supabase.initialize(
+    url: SupabaseConfig.url,
+    anonKey: SupabaseConfig.anonKey,
+  );
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -35,20 +42,21 @@ class _BSmartAppState extends State<BSmartApp> {
   }
 
   Future<void> _checkAuthStatus() async {
-    try {
-      final jwtService = JWTService();
-      final isAuth = await jwtService.isAuthenticated();
-      
-      setState(() {
-        _isAuthenticated = isAuth;
-        _isInitialized = true;
-      });
-    } catch (e) {
-      setState(() {
-        _isAuthenticated = false;
-        _isInitialized = true;
-      });
-    }
+    // Check current session from Supabase
+    final session = Supabase.instance.client.auth.currentSession;
+    setState(() {
+      _isAuthenticated = session != null;
+      _isInitialized = true;
+    });
+
+    // Listen for auth state changes
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (mounted) {
+        setState(() {
+          _isAuthenticated = data.session != null;
+        });
+      }
+    });
   }
 
   @override
@@ -70,40 +78,6 @@ class _BSmartAppState extends State<BSmartApp> {
       debugShowCheckedModeBanner: false,
       theme: InstagramTheme.theme,
       home: _isAuthenticated ? const HomeDashboard() : const LoginScreen(),
-      // Add route observer for auth state changes
-      navigatorObservers: [
-        _AuthRouteObserver(),
-      ],
     );
-  }
-}
-
-// Route observer to handle auth state changes
-class _AuthRouteObserver extends NavigatorObserver {
-  @override
-  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    super.didPush(route, previousRoute);
-    _checkAuthAndRedirect(route);
-  }
-
-  @override
-  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
-    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
-    if (newRoute != null) {
-      _checkAuthAndRedirect(newRoute);
-    }
-  }
-
-  Future<void> _checkAuthAndRedirect(Route<dynamic> route) async {
-    // Check if we need to refresh token before accessing protected routes
-    if (route.settings.name != '/login' && route.settings.name != '/signup') {
-      final jwtService = JWTService();
-      final isAuth = await jwtService.isAuthenticated();
-      
-      if (!isAuth && route.settings.name != '/login') {
-        // Token expired or invalid, redirect to login
-        // This would be handled by the app's navigation logic
-      }
-    }
   }
 }

@@ -120,11 +120,12 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _handleGoogleLogin() async {
     setState(() => _isLoading = true);
-
+    print('hgfd');
     try {
       await _authService.loginWithGoogle();
       _navigateToHome();
     } catch (e) {
+      print('error-> $e');
       _showError(e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) {

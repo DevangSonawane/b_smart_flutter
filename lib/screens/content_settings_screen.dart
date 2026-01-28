@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/content_moderation_service.dart';
 import '../theme/instagram_theme.dart';
+import 'auth/login/login_screen.dart';
 
 class ContentSettingsScreen extends StatefulWidget {
   const ContentSettingsScreen({super.key});
@@ -36,7 +37,7 @@ class _ContentSettingsScreenState extends State<ContentSettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Content Settings'),
+        title: const Text('Settings'),
         backgroundColor: Colors.transparent,
         foregroundColor: InstagramTheme.textBlack,
       ),
@@ -211,62 +212,178 @@ class _ContentSettingsScreenState extends State<ContentSettingsScreen> {
 
             const SizedBox(height: 24),
 
-            // Content Policy
+            // App Settings
+            const Text(
+              'App Settings',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Language & Region
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.description),
-                title: const Text('Content Policy'),
-                subtitle: const Text('View our community guidelines'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Content Policy'),
-                      content: const SingleChildScrollView(
-                        child: Text(
-                          'Our content policy prohibits:\n\n'
-                          '• Explicit sexual activity\n'
-                          '• Nudity\n'
-                          '• Pornographic material\n'
-                          '• Sexualized content (restricted)\n\n'
-                          'Sponsored content must be completely free of sexual or suggestive elements.\n\n'
-                          'Violations may result in content removal, account restrictions, or suspension.',
-                        ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Close'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.language),
+                    title: const Text('Language'),
+                    subtitle: const Text('English (Default)'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      _showLanguageDialog();
+                    },
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.place),
+                    title: const Text('Region / Address'),
+                    subtitle: const Text('Set your location'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      _showAddressDialog();
+                    },
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 32),
 
-            // Appeal Policy Violation
-            if (strikeRecord != null && strikeRecord.policyStrikes > 0)
-              Card(
-                child: ListTile(
-                  leading: const Icon(Icons.gavel),
-                  title: const Text('Appeal Policy Violation'),
-                  subtitle: const Text('Request review of a violation'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Appeal submitted. We will review your case.'),
-                      ),
-                    );
-                  },
+            // Account Actions
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  // Logout Logic
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: InstagramTheme.surfaceWhite,
+                  foregroundColor: InstagramTheme.textBlack,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: InstagramTheme.dividerGrey),
+                  ),
+                ),
+                child: const Text('Log Out'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: () {
+                  _showDeleteAccountDialog();
+                },
+                child: const Text(
+                  'Delete Account',
+                  style: TextStyle(color: InstagramTheme.errorRed),
                 ),
               ),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLanguageDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Language'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            ListTile(title: Text('English (Default)'), trailing: Icon(Icons.check, color: InstagramTheme.primaryPink)),
+            ListTile(title: Text('Spanish')),
+            ListTile(title: Text('French')),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddressDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update Address'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              decoration: const InputDecoration(labelText: 'Street Address'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              decoration: const InputDecoration(labelText: 'City'),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              decoration: const InputDecoration(labelText: 'Postal Code'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Address updated')),
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account'),
+        content: const Text(
+          'Are you sure you want to delete your account? This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: InstagramTheme.errorRed),
+            ),
+          ),
+        ],
       ),
     );
   }

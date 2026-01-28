@@ -41,6 +41,12 @@ class _SignupAccountSetupScreenState extends State<SignupAccountSetupScreen> {
     _usernameController.addListener(_checkUsernameAvailability);
     if (!_isGoogleSignup) {
       _passwordController.addListener(_updatePasswordStrength);
+    } else {
+      // Pre-fill full name for Google signup
+      final fullName = widget.session.metadata['full_name'];
+      if (fullName != null) {
+        _fullNameController.text = fullName;
+      }
     }
   }
 

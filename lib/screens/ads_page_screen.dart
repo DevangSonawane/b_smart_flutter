@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/ad_model.dart';
 import '../models/ad_category_model.dart';
 import '../services/ad_category_service.dart';
@@ -25,7 +26,7 @@ class _AdsPageScreenState extends State<AdsPageScreen>
   final WalletService _walletService = WalletService();
   final NotificationService _notificationService = NotificationService();
 
-  final String _userId = 'user-1';
+  final String _userId = Supabase.instance.client.auth.currentUser?.id ?? 'user-1';
 
   List<AdCategory> _categories = [];
   String _selectedCategoryId = 'all';

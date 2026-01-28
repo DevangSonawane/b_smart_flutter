@@ -105,6 +105,7 @@ class _SignupIdentifierScreenState extends State<SignupIdentifierScreen>
 
     try {
       final session = await _authService.signupWithGoogle();
+      print('session> $session');
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -113,6 +114,7 @@ class _SignupIdentifierScreenState extends State<SignupIdentifierScreen>
         );
       }
     } catch (e) {
+      print('error -.> $e');
       if (mounted) {
         _showError(e.toString().replaceAll('Exception: ', ''));
       }

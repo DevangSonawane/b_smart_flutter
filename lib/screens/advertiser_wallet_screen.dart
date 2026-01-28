@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/advertiser_model.dart';
 import '../services/advertiser_service.dart';
+import '../theme/instagram_theme.dart';
 
 class AdvertiserWalletScreen extends StatelessWidget {
   const AdvertiserWalletScreen({super.key});

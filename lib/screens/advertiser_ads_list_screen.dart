@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/advertiser_model.dart';
 import '../services/advertiser_service.dart';
 import 'advertiser_analytics_screen.dart';
 

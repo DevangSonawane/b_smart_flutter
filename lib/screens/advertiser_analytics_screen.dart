@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/advertiser_model.dart';
 import '../services/advertiser_service.dart';
+import '../theme/instagram_theme.dart';
 
 class AdvertiserAnalyticsScreen extends StatefulWidget {
   final String adId;
