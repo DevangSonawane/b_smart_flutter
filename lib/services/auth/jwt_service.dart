@@ -1,32 +1,66 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../../models/auth/jwt_token_model.dart';
 import '../../utils/constants.dart';
-import '../supabase_service.dart';
-import 'device_service.dart';
 
 class JWTService {
   static final JWTService _instance = JWTService._internal();
   factory JWTService() => _instance;
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  late final FlutterSecureStorage _storage;
+  final Map<String, String> _memoryStorage = {}; // Fallback when secure storage unavailable (e.g. web)
   JWTToken? _cachedToken;
 
-  JWTService._internal();
+  JWTService._internal() {
+    if (kIsWeb) {
+      _storage = const FlutterSecureStorage(
+        webOptions: WebOptions(
+          dbName: 'b_smart_secure',
+          publicKey: 'b_smart_jwt',
+        ),
+      );
+    } else {
+      _storage = const FlutterSecureStorage();
+    }
+  }
+
+  Future<void> _write(String key, String value) async {
+    try {
+      await _storage.write(key: key, value: value);
+    } catch (_) {
+      _memoryStorage[key] = value;
+    }
+  }
+
+  Future<String?> _read(String key) async {
+    try {
+      return await _storage.read(key: key) ?? _memoryStorage[key];
+    } catch (_) {
+      return _memoryStorage[key];
+    }
+  }
+
+  Future<void> _delete(String key) async {
+    try {
+      await _storage.delete(key: key);
+    } catch (_) {}
+    _memoryStorage.remove(key);
+  }
 
   // Store tokens securely
   Future<void> storeTokens(JWTToken token) async {
     _cachedToken = token;
-    await _storage.write(key: AuthConstants.accessTokenKey, value: token.accessToken);
-    await _storage.write(key: AuthConstants.refreshTokenKey, value: token.refreshToken);
-    await _storage.write(
-        key: '${AuthConstants.accessTokenKey}_expires',
-        value: token.accessTokenExpiresAt.toIso8601String());
-    await _storage.write(
-        key: '${AuthConstants.refreshTokenKey}_expires',
-        value: token.refreshTokenExpiresAt.toIso8601String());
+    await _write(AuthConstants.accessTokenKey, token.accessToken);
+    await _write(AuthConstants.refreshTokenKey, token.refreshToken);
+    await _write(
+        '${AuthConstants.accessTokenKey}_expires',
+        token.accessTokenExpiresAt.toIso8601String());
+    await _write(
+        '${AuthConstants.refreshTokenKey}_expires',
+        token.refreshTokenExpiresAt.toIso8601String());
     if (token.deviceId != null) {
-      await _storage.write(key: AuthConstants.deviceIdKey, value: token.deviceId);
+      await _write(AuthConstants.deviceIdKey, token.deviceId!);
     }
   }
 
@@ -37,11 +71,11 @@ class JWTService {
     }
 
     try {
-      final accessToken = await _storage.read(key: AuthConstants.accessTokenKey);
-      final refreshToken = await _storage.read(key: AuthConstants.refreshTokenKey);
-      final accessExpiresStr = await _storage.read(key: '${AuthConstants.accessTokenKey}_expires');
-      final refreshExpiresStr = await _storage.read(key: '${AuthConstants.refreshTokenKey}_expires');
-      final deviceId = await _storage.read(key: AuthConstants.deviceIdKey);
+      final accessToken = await _read(AuthConstants.accessTokenKey);
+      final refreshToken = await _read(AuthConstants.refreshTokenKey);
+      final accessExpiresStr = await _read('${AuthConstants.accessTokenKey}_expires');
+      final refreshExpiresStr = await _read('${AuthConstants.refreshTokenKey}_expires');
+      final deviceId = await _read(AuthConstants.deviceIdKey);
 
       if (accessToken == null || refreshToken == null) {
         return null;
@@ -115,42 +149,8 @@ class JWTService {
     }
 
     try {
-      final supabase = SupabaseService();
-      final deviceService = DeviceService();
-      final deviceInfo = await deviceService.getDeviceInfo();
-
-      // Call backend to refresh token (this would be a custom endpoint)
-      // For now, we'll use Supabase's built-in refresh
-      final response = await supabase.client.auth.refreshSession();
-
-      if (response.session != null) {
-        // Create new token from Supabase session
-        // Note: In a real implementation, you'd have a custom JWT endpoint
-        // For now, we'll simulate token creation
-        DateTime? expiresAt;
-        if (response.session!.expiresAt != null) {
-          if (response.session!.expiresAt is DateTime) {
-            expiresAt = response.session!.expiresAt as DateTime;
-          } else if (response.session!.expiresAt is int) {
-            expiresAt = DateTime.fromMillisecondsSinceEpoch(
-                (response.session!.expiresAt as int) * 1000);
-          } else if (response.session!.expiresAt is String) {
-            expiresAt = DateTime.parse(response.session!.expiresAt as String);
-          }
-        }
-        
-        final newToken = JWTToken(
-          accessToken: response.session!.accessToken,
-          refreshToken: response.session!.refreshToken ?? currentToken.refreshToken,
-          accessTokenExpiresAt: expiresAt ?? DateTime.now().add(AuthConstants.accessTokenExpiry),
-          refreshTokenExpiresAt: DateTime.now().add(AuthConstants.refreshTokenExpiry),
-          deviceId: deviceInfo.deviceId,
-        );
-
-        await storeTokens(newToken);
-        return newToken;
-      }
-
+      // TODO: Implement backend integration to refresh token.
+      // For now, return null so caller can handle (e.g. redirect to login).
       return null;
     } catch (e) {
       await clearTokens();
@@ -161,12 +161,12 @@ class JWTService {
   // Clear all tokens
   Future<void> clearTokens() async {
     _cachedToken = null;
-    await _storage.delete(key: AuthConstants.accessTokenKey);
-    await _storage.delete(key: AuthConstants.refreshTokenKey);
-    await _storage.delete(key: '${AuthConstants.accessTokenKey}_expires');
-    await _storage.delete(key: '${AuthConstants.refreshTokenKey}_expires');
-    await _storage.delete(key: AuthConstants.deviceIdKey);
-    await _storage.delete(key: AuthConstants.userIdKey);
+    await _delete(AuthConstants.accessTokenKey);
+    await _delete(AuthConstants.refreshTokenKey);
+    await _delete('${AuthConstants.accessTokenKey}_expires');
+    await _delete('${AuthConstants.refreshTokenKey}_expires');
+    await _delete(AuthConstants.deviceIdKey);
+    await _delete(AuthConstants.userIdKey);
   }
 
   // Check if user is authenticated

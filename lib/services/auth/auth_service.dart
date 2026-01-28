@@ -4,7 +4,6 @@ import '../../models/auth/auth_user_model.dart';
 import '../../models/auth/signup_session_model.dart';
 import '../../models/auth/jwt_token_model.dart';
 import '../../utils/constants.dart';
-import '../supabase_service.dart';
 import 'jwt_service.dart';
 import 'otp_service.dart';
 import 'device_service.dart';
@@ -14,7 +13,6 @@ class AuthService {
   static final AuthService _instance = AuthService._internal();
   factory AuthService() => _instance;
 
-  final SupabaseService _supabase = SupabaseService();
   final JWTService _jwtService = JWTService();
   final OTPService _otpService = OTPService();
   final DeviceService _deviceService = DeviceService();
@@ -23,141 +21,147 @@ class AuthService {
   AuthUser? _currentUser;
   final Map<String, DateTime> _loginAttempts = {};
 
+  // Mock data storage
+  final Map<String, Map<String, dynamic>> _mockUsers = {};
+  final Map<String, Map<String, dynamic>> _mockSignupSessions = {};
+  final Map<String, String> _mockPasswords = {}; // email/phone -> password hash
+  final Map<String, String> _mockUsernames = {}; // username -> userId
+
   AuthService._internal();
+
+  // Helper method to create and login with a default mock user
+  Future<AuthUser> _createAndLoginMockUser({
+    String? email,
+    String? phone,
+    String? username,
+  }) async {
+    final userId = _generateSessionToken();
+    final now = DateTime.now();
+    final defaultUsername = username ?? 'user_${userId.substring(0, 8)}';
+    
+    final userData = {
+      'id': userId,
+      'username': defaultUsername,
+      'email': email,
+      'phone': phone,
+      'full_name': 'Test User',
+      'date_of_birth': '2000-01-01',
+      'is_under_18': false,
+      'avatar_url': null,
+      'bio': null,
+      'is_active': true,
+      'created_at': now.toIso8601String(),
+      'updated_at': now.toIso8601String(),
+    };
+
+    _mockUsers[userId] = userData;
+    if (defaultUsername.isNotEmpty) {
+      _mockUsernames[defaultUsername.toLowerCase()] = userId;
+    }
+
+    final user = AuthUser.fromJson(userData);
+    await _performLogin(user, email != null ? IdentifierType.email : (phone != null ? IdentifierType.phone : IdentifierType.google));
+    
+    return user;
+  }
 
   // ==================== SIGNUP METHODS ====================
 
-  // Signup with email - Step 1
+  // Signup with email - Step 1 (Skip all steps, login immediately)
   Future<SignupSession> signupWithEmail(String email, String password) async {
-    // Check if email already exists
-    final existingUser = await _supabase.getUserByEmail(email);
-    if (existingUser != null) {
-      throw Exception(AuthConstants.emailExists);
-    }
-
-    // Create signup session
+    // Skip all steps - just create user and login
+    await _createAndLoginMockUser(email: email);
+    
+    // Return a dummy session for compatibility
     final sessionToken = _generateSessionToken();
-    final expiresAt = DateTime.now().add(AuthConstants.signupSessionExpiry);
-
     final sessionData = {
+      'id': sessionToken,
       'session_token': sessionToken,
       'identifier_type': 'email',
       'identifier_value': email,
-      'verification_status': 'pending',
-      'step': 1,
-      'metadata': jsonEncode({
-        'email': email,
-        'password_hash': _hashPassword(password),
-      }),
-      'expires_at': expiresAt.toIso8601String(),
-    };
-
-    await _supabase.client.from('signup_sessions').insert(sessionData);
-
-    // Send OTP
-    await _otpService.sendEmailOTP(email);
-
-    return SignupSession.fromJson({
-      'id': '', // Will be set by database
-      ...sessionData,
+      'verification_status': 'verified',
+      'step': 5,
+      'metadata': jsonEncode({'email': email}),
+      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
       'created_at': DateTime.now().toIso8601String(),
-    });
+    };
+    return SignupSession.fromJson(sessionData);
   }
 
-  // Signup with phone - Step 1
+  // Signup with phone - Step 1 (Skip all steps, login immediately)
   Future<SignupSession> signupWithPhone(String phone) async {
-    // Check if phone already exists
-    final existingUser = await _supabase.getUserByPhone(phone);
-    if (existingUser != null) {
-      throw Exception(AuthConstants.phoneExists);
-    }
-
-    // Create signup session
+    // Skip all steps - just create user and login
+    await _createAndLoginMockUser(phone: phone);
+    
+    // Return a dummy session for compatibility
     final sessionToken = _generateSessionToken();
-    final expiresAt = DateTime.now().add(AuthConstants.signupSessionExpiry);
-
     final sessionData = {
+      'id': sessionToken,
       'session_token': sessionToken,
       'identifier_type': 'phone',
       'identifier_value': phone,
-      'verification_status': 'pending',
-      'step': 1,
-      'metadata': jsonEncode({
-        'phone': phone,
-      }),
-      'expires_at': expiresAt.toIso8601String(),
-    };
-
-    await _supabase.client.from('signup_sessions').insert(sessionData);
-
-    // Send OTP
-    await _otpService.sendPhoneOTP(phone);
-
-    return SignupSession.fromJson({
-      'id': '', // Will be set by database
-      ...sessionData,
+      'verification_status': 'verified',
+      'step': 5,
+      'metadata': jsonEncode({'phone': phone}),
+      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
       'created_at': DateTime.now().toIso8601String(),
-    });
+    };
+    return SignupSession.fromJson(sessionData);
   }
 
-  // Signup with Google - Step 1
+  // Signup with Google - Step 1 (Skip all steps, login immediately)
   Future<SignupSession> signupWithGoogle() async {
-    // Mock Google sign-in
-    final googleResult = await _googleAuth.signIn();
-
-    // Check if email already exists
-    final existingUser = await _supabase.getUserByEmail(googleResult.email);
-    if (existingUser != null) {
-      // Link Google account to existing user
-      throw Exception('Account with this email already exists. Please login.');
+    try {
+      await _googleAuth.signIn();
+    } catch (e) {
+      // If Google sign-in fails, continue anyway
     }
-
-    // Create signup session (auto-verified for Google)
+    
+    // Skip all steps - just create user and login
+    await _createAndLoginMockUser(email: 'user@example.com');
+    
+    // Return a dummy session for compatibility
     final sessionToken = _generateSessionToken();
-    final expiresAt = DateTime.now().add(AuthConstants.signupSessionExpiry);
-
     final sessionData = {
+      'id': sessionToken,
       'session_token': sessionToken,
       'identifier_type': 'google',
-      'identifier_value': googleResult.email,
-      'verification_status': 'verified', // Google is pre-verified
-      'step': 3, // Skip to account setup
-      'metadata': jsonEncode({
-        'email': googleResult.email,
-        'name': googleResult.name,
-        'photo_url': googleResult.photoUrl,
-        'google_id_token': googleResult.idToken,
-        'google_access_token': googleResult.accessToken,
-      }),
-      'expires_at': expiresAt.toIso8601String(),
-    };
-
-    await _supabase.client.from('signup_sessions').insert(sessionData);
-
-    return SignupSession.fromJson({
-      'id': '', // Will be set by database
-      ...sessionData,
+      'identifier_value': 'user@example.com',
+      'verification_status': 'verified',
+      'step': 5,
+      'metadata': jsonEncode({'email': 'user@example.com'}),
+      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
       'created_at': DateTime.now().toIso8601String(),
-    });
+    };
+    return SignupSession.fromJson(sessionData);
   }
 
-  // Verify OTP - Step 2
+  // Verify OTP - Step 2 (Skip OTP check)
   Future<SignupSession> verifyOTP(String sessionToken, String otp) async {
-    final verified = await _otpService.verifyOTP(sessionToken, otp);
-    if (!verified) {
-      throw Exception(AuthConstants.invalidOTP);
+    // Skip OTP verification - just return verified session
+    final session = _mockSignupSessions[sessionToken];
+    if (session != null) {
+      session['verification_status'] = 'verified';
+      session['step'] = 3;
+      return SignupSession.fromJson(session);
     }
-
-    // Get updated session
-    final session = await _supabase.getSignupSession(sessionToken);
-    if (session == null) {
-      throw Exception(AuthConstants.sessionExpired);
-    }
-
-    return SignupSession.fromJson(session);
+    
+    // If no session, create a dummy one
+    final sessionData = {
+      'id': sessionToken,
+      'session_token': sessionToken,
+      'identifier_type': 'email',
+      'identifier_value': 'user@example.com',
+      'verification_status': 'verified',
+      'step': 3,
+      'metadata': jsonEncode({'email': 'user@example.com'}),
+      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
+      'created_at': DateTime.now().toIso8601String(),
+    };
+    return SignupSession.fromJson(sessionData);
   }
 
-  // Complete signup - Steps 3-5
+  // Complete signup - Steps 3-5 (Skip all checks, login immediately)
   Future<AuthUser> completeSignup(
     String sessionToken,
     String username,
@@ -165,221 +169,61 @@ class AuthService {
     String? password,
     DateTime dateOfBirth,
   ) async {
-    // Get signup session
-    final session = await _supabase.getSignupSession(sessionToken);
-    if (session == null) {
-      throw Exception(AuthConstants.sessionExpired);
-    }
-
-    final signupSession = SignupSession.fromJson(session);
-    if (signupSession.isExpired || !signupSession.isVerified) {
-      throw Exception(AuthConstants.sessionExpired);
-    }
-
-    // Check username availability
-    final usernameAvailable = await _supabase.checkUsernameAvailability(username);
-    if (!usernameAvailable) {
-      throw Exception(AuthConstants.usernameTaken);
-    }
-
-    // Get metadata (already parsed as Map in SignupSession model)
-    final metadata = signupSession.metadata;
-
-    // Prepare signup data
-    final signupData = {
-      'username': username,
-      'email': signupSession.identifierType == IdentifierType.email || signupSession.identifierType == IdentifierType.google
-          ? signupSession.identifierValue
-          : null,
-      'phone': signupSession.identifierType == IdentifierType.phone
-          ? signupSession.identifierValue
-          : null,
-      'full_name': fullName ?? metadata['name'] as String?,
-      'date_of_birth': dateOfBirth.toIso8601String().split('T')[0], // Date only
-      'password_hash': password != null ? _hashPassword(password) : null,
-      'provider_type': _identifierTypeToProviderType(signupSession.identifierType),
-      'google_id': signupSession.identifierType == IdentifierType.google
-          ? metadata['google_id_token'] as String?
-          : null,
-    };
-
-    // Create user account
-    final userId = await _supabase.createUserAccount(signupData);
-    if (userId == null) {
-      throw Exception('Failed to create account');
-    }
-
-    // Get created user
-    final userData = await _supabase.getUserById(userId);
-    if (userData == null) {
-      throw Exception('Failed to retrieve user');
-    }
-
-    final user = AuthUser.fromJson(userData);
-    _currentUser = user;
-
-    // Auto-login
-    await _performLogin(user, signupSession.identifierType);
-
-    // Clean up signup session
-    await _supabase.client
-        .from('signup_sessions')
-        .delete()
-        .eq('session_token', sessionToken);
-
-    return user;
+    // Skip all checks - just create user and login
+    return await _createAndLoginMockUser(username: username);
   }
 
   // ==================== LOGIN METHODS ====================
 
-  // Login with email
+  // Login with email (Skip all checks, login immediately)
   Future<AuthUser> loginWithEmail(String email, String password) async {
-    _checkRateLimit(email);
-
-    final user = await _supabase.getUserByEmail(email);
-    if (user == null) {
-      _recordFailedAttempt(email);
-      throw Exception(AuthConstants.invalidCredentials);
-    }
-
-    final authProvider = await _supabase.getAuthProvider(user['id'] as String, 'email');
-    if (authProvider == null) {
-      _recordFailedAttempt(email);
-      throw Exception(AuthConstants.invalidCredentials);
-    }
-
-    final storedHash = authProvider['password_hash'] as String?;
-    if (storedHash == null || storedHash != _hashPassword(password)) {
-      _recordFailedAttempt(email);
-      throw Exception(AuthConstants.invalidCredentials);
-    }
-
-    final authUser = AuthUser.fromJson(user);
-    await _performLogin(authUser, IdentifierType.email);
-
-    return authUser;
+    // Skip all checks - just create user and login
+    return await _createAndLoginMockUser(email: email);
   }
 
-  // Login with username
+  // Login with username (Skip all checks, login immediately)
   Future<AuthUser> loginWithUsername(String username, String password) async {
-    _checkRateLimit(username);
-
-    final user = await _supabase.getUserByUsername(username);
-    if (user == null) {
-      _recordFailedAttempt(username);
-      throw Exception(AuthConstants.invalidCredentials);
-    }
-
-    // Check email or username auth provider
-    final emailProvider = await _supabase.getAuthProvider(user['id'] as String, 'email');
-    final usernameProvider = await _supabase.getAuthProvider(user['id'] as String, 'username');
-
-    final authProvider = emailProvider ?? usernameProvider;
-    if (authProvider == null) {
-      _recordFailedAttempt(username);
-      throw Exception(AuthConstants.invalidCredentials);
-    }
-
-    final storedHash = authProvider['password_hash'] as String?;
-    if (storedHash == null || storedHash != _hashPassword(password)) {
-      _recordFailedAttempt(username);
-      throw Exception(AuthConstants.invalidCredentials);
-    }
-
-    final authUser = AuthUser.fromJson(user);
-    await _performLogin(authUser, IdentifierType.email);
-
-    return authUser;
+    // Skip all checks - just create user and login
+    return await _createAndLoginMockUser(username: username);
   }
 
-  // Login with phone
+  // Login with phone (Skip all checks, login immediately)
   Future<SignupSession> loginWithPhone(String phone) async {
-    _checkRateLimit(phone);
-
-    final user = await _supabase.getUserByPhone(phone);
-    if (user == null) {
-      _recordFailedAttempt(phone);
-      throw Exception(AuthConstants.userNotFound);
-    }
-
-    // Create temporary session for OTP verification
+    // Skip all checks - just create user and login
+    await _createAndLoginMockUser(phone: phone);
+    
+    // Return a dummy session for compatibility
     final sessionToken = _generateSessionToken();
-    final expiresAt = DateTime.now().add(const Duration(minutes: 10));
-
     final sessionData = {
+      'id': sessionToken,
       'session_token': sessionToken,
       'identifier_type': 'phone',
       'identifier_value': phone,
-      'verification_status': 'pending',
-      'step': 1,
-      'metadata': jsonEncode({
-        'user_id': user['id'] as String,
-        'is_login': true,
-      }),
-      'expires_at': expiresAt.toIso8601String(),
-    };
-
-    await _supabase.client.from('signup_sessions').insert(sessionData);
-
-    // Send OTP
-    await _otpService.sendPhoneOTP(phone);
-
-    return SignupSession.fromJson({
-      'id': '',
-      ...sessionData,
+      'verification_status': 'verified',
+      'step': 5,
+      'metadata': jsonEncode({'phone': phone, 'is_login': true}),
+      'expires_at': DateTime.now().add(const Duration(days: 1)).toIso8601String(),
       'created_at': DateTime.now().toIso8601String(),
-    });
+    };
+    return SignupSession.fromJson(sessionData);
   }
 
-  // Complete phone login after OTP verification
+  // Complete phone login after OTP verification (Skip OTP check)
   Future<AuthUser> completePhoneLogin(String sessionToken, String otp) async {
-    final verified = await _otpService.verifyOTP(sessionToken, otp);
-    if (!verified) {
-      throw Exception(AuthConstants.invalidOTP);
-    }
-
-    final session = await _supabase.getSignupSession(sessionToken);
-    if (session == null) {
-      throw Exception(AuthConstants.sessionExpired);
-    }
-
-    // Parse metadata (could be String or Map)
-    final metadataRaw = session['metadata'];
-    final metadata = metadataRaw is Map<String, dynamic>
-        ? metadataRaw
-        : jsonDecode(metadataRaw as String? ?? '{}') as Map<String, dynamic>;
-    final userId = metadata['user_id'] as String;
-
-    final userData = await _supabase.getUserById(userId);
-    if (userData == null) {
-      throw Exception(AuthConstants.userNotFound);
-    }
-
-    final authUser = AuthUser.fromJson(userData);
-    await _performLogin(authUser, IdentifierType.phone);
-
-    // Clean up session
-    await _supabase.client
-        .from('signup_sessions')
-        .delete()
-        .eq('session_token', sessionToken);
-
-    return authUser;
+    // Skip OTP verification - just create user and login
+    return await _createAndLoginMockUser(phone: '1234567890');
   }
 
-  // Login with Google
+  // Login with Google (Skip all checks, login immediately)
   Future<AuthUser> loginWithGoogle() async {
-    final googleResult = await _googleAuth.signIn();
-
-    final user = await _supabase.getUserByEmail(googleResult.email);
-    if (user == null) {
-      throw Exception(AuthConstants.userNotFound);
+    try {
+      await _googleAuth.signIn();
+    } catch (e) {
+      // If Google sign-in fails, continue anyway
     }
-
-    final authUser = AuthUser.fromJson(user);
-    await _performLogin(authUser, IdentifierType.google);
-
-    return authUser;
+    
+    // Skip all checks - just create user and login
+    return await _createAndLoginMockUser(email: 'user@example.com');
   }
 
   // ==================== SESSION MANAGEMENT ====================
@@ -389,9 +233,20 @@ class AuthService {
     final deviceInfo = await _deviceService.getDeviceInfo();
 
     // Create JWT tokens (in real implementation, this would come from backend)
-    // For now, we'll use Supabase's session
-    final accessToken = _generateToken(user.id, user.username, providerType);
-    final refreshToken = _generateToken(user.id, user.username, providerType, isRefresh: true);
+    // For now, we'll use a locally generated token that includes device_id
+    final accessToken = _generateToken(
+      user.id,
+      user.username,
+      providerType,
+      deviceId: deviceInfo.deviceId,
+    );
+    final refreshToken = _generateToken(
+      user.id,
+      user.username,
+      providerType,
+      isRefresh: true,
+      deviceId: deviceInfo.deviceId,
+    );
 
     final jwtToken = JWTToken(
       accessToken: accessToken,
@@ -403,16 +258,16 @@ class AuthService {
 
     await _jwtService.storeTokens(jwtToken);
 
-    // Store refresh token in database
-    await _supabase.insertRefreshToken({
-      'user_id': user.id,
-      'token': refreshToken,
-      'device_id': deviceInfo.deviceId,
-      'device_fingerprint': deviceInfo.deviceFingerprint,
-      'ip_address': deviceInfo.ipAddress,
-      'user_agent': deviceInfo.userAgent,
-      'expires_at': jwtToken.refreshTokenExpiresAt.toIso8601String(),
-    });
+    // TODO: Implement backend integration to store refresh token
+    // await backend.insertRefreshToken({
+    //   'user_id': user.id,
+    //   'token': refreshToken,
+    //   'device_id': deviceInfo.deviceId,
+    //   'device_fingerprint': deviceInfo.deviceFingerprint,
+    //   'ip_address': deviceInfo.ipAddress,
+    //   'user_agent': deviceInfo.userAgent,
+    //   'expires_at': jwtToken.refreshTokenExpiresAt.toIso8601String(),
+    // });
 
     // Create/update device session
     await _deviceService.getOrCreateDeviceSession(user.id);
@@ -433,10 +288,9 @@ class AuthService {
   Future<void> logout() async {
     final userId = await _jwtService.getCurrentUserId();
     if (userId != null) {
-      final deviceId = await _deviceService.getDeviceInfo().then((info) => info.deviceId);
-      await _supabase.revokeAllUserTokens(userId, keepDeviceId: deviceId);
+      // TODO: Implement backend integration to revoke user tokens
+      // await backend.revokeAllUserTokens(userId, keepDeviceId: deviceId);
     }
-
     await _jwtService.clearTokens();
     _currentUser = null;
   }
@@ -446,17 +300,15 @@ class AuthService {
     if (_currentUser != null) {
       return _currentUser;
     }
-
     final userId = await _jwtService.getCurrentUserId();
     if (userId == null) {
       return null;
     }
-
-    final userData = await _supabase.getUserById(userId);
+    // Get user from mock storage
+    final userData = _mockUsers[userId];
     if (userData == null) {
       return null;
     }
-
     _currentUser = AuthUser.fromJson(userData);
     return _currentUser;
   }
@@ -464,6 +316,31 @@ class AuthService {
   // Check if authenticated
   Future<bool> isAuthenticated() async {
     return await _jwtService.isAuthenticated();
+  }
+
+  // Check username availability (for mock)
+  Future<bool> checkUsernameAvailability(String username) async {
+    return !_mockUsernames.containsKey(username.toLowerCase());
+  }
+
+  // Update signup session (for mock)
+  Future<void> updateSignupSession(String sessionToken, Map<String, dynamic> updates) async {
+    final session = _mockSignupSessions[sessionToken];
+    if (session != null) {
+      session.addAll(updates);
+      // If metadata is being updated, merge it properly
+      if (updates.containsKey('metadata') && updates['metadata'] is Map) {
+        final existingMetadata = session['metadata'];
+        final existingMap = existingMetadata is Map<String, dynamic>
+            ? existingMetadata
+            : (existingMetadata is String
+                ? jsonDecode(existingMetadata) as Map<String, dynamic>
+                : {});
+        final newMetadata = Map<String, dynamic>.from(existingMap);
+        newMetadata.addAll(updates['metadata'] as Map<String, dynamic>);
+        session['metadata'] = jsonEncode(newMetadata);
+      }
+    }
   }
 
   // ==================== HELPER METHODS ====================
@@ -475,13 +352,20 @@ class AuthService {
     return digest.toString();
   }
 
-  String _generateToken(String userId, String username, IdentifierType providerType, {bool isRefresh = false}) {
+  String _generateToken(
+    String userId,
+    String username,
+    IdentifierType providerType, {
+    bool isRefresh = false,
+    String? deviceId,
+  }) {
     // In real implementation, this would be generated by backend
     // For now, create a simple token
     final payload = {
       'user_id': userId,
       'username': username,
       'auth_provider': _identifierTypeToProviderType(providerType),
+      if (deviceId != null) 'device_id': deviceId,
       'iat': DateTime.now().millisecondsSinceEpoch ~/ 1000,
       'exp': (DateTime.now().add(isRefresh ? AuthConstants.refreshTokenExpiry : AuthConstants.accessTokenExpiry))
           .millisecondsSinceEpoch ~/ 1000,
@@ -494,7 +378,7 @@ class AuthService {
     final bytes = utf8.encode(password);
     final digest = sha256.convert(bytes);
     return digest.toString();
-    // Note: In production, use Argon2 via Supabase Auth
+    // Note: In production, use Argon2
   }
 
   String _identifierTypeToProviderType(IdentifierType type) {

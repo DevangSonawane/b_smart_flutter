@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'screens/auth/login/login_screen.dart';
 import 'screens/home_dashboard.dart';
 import 'theme/instagram_theme.dart';
-import 'services/supabase_service.dart';
 import 'services/auth/jwt_service.dart';
 
 void main() async {
@@ -14,28 +13,6 @@ void main() async {
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-
-  // Initialize Supabase
-  // TODO: Replace with your actual Supabase credentials
-  // You can use environment variables or a config file
-  const supabaseUrl = String.fromEnvironment(
-    'SUPABASE_URL',
-    defaultValue: 'https://your-project.supabase.co',
-  );
-  const supabaseAnonKey = String.fromEnvironment(
-    'SUPABASE_ANON_KEY',
-    defaultValue: 'your-anon-key',
-  );
-
-  try {
-    await SupabaseService().initialize(
-      supabaseUrl: supabaseUrl,
-      supabaseAnonKey: supabaseAnonKey,
-    );
-  } catch (e) {
-    // Handle initialization error
-    debugPrint('Supabase initialization error: $e');
-  }
 
   runApp(const BSmartApp());
 }

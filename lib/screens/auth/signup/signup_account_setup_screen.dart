@@ -4,7 +4,7 @@ import '../../../widgets/clay_container.dart';
 import '../../../models/auth/signup_session_model.dart';
 import '../../../utils/validators.dart';
 import '../../../utils/constants.dart';
-import '../../../services/supabase_service.dart';
+import '../../../services/auth/auth_service.dart';
 import 'signup_age_verification_screen.dart';
 
 class SignupAccountSetupScreen extends StatefulWidget {
@@ -31,8 +31,6 @@ class _SignupAccountSetupScreenState extends State<SignupAccountSetupScreen> {
   bool _isCheckingUsername = false;
   bool _isUsernameAvailable = false;
   PasswordStrength _passwordStrength = PasswordStrength.weak;
-
-  final SupabaseService _supabase = SupabaseService();
 
   late final bool _isGoogleSignup;
 
@@ -81,8 +79,9 @@ class _SignupAccountSetupScreenState extends State<SignupAccountSetupScreen> {
         return; // Username changed, ignore this result
       }
 
-      final available =
-          await _supabase.checkUsernameAvailability(username);
+      // Check username availability in mock storage
+      final authService = AuthService();
+      final available = await authService.checkUsernameAvailability(username);
       if (mounted) {
         setState(() {
           _isUsernameAvailable = available;
@@ -123,11 +122,13 @@ class _SignupAccountSetupScreenState extends State<SignupAccountSetupScreen> {
         'password': _isGoogleSignup ? null : _passwordController.text,
       };
 
-      await _supabase.updateSignupSession(
+      // Update signup session
+      final authService = AuthService();
+      await authService.updateSignupSession(
         widget.session.sessionToken,
         {
           'metadata': metadata,
-          'step': 4, // Move to age verification
+          'step': 4,
         },
       );
 

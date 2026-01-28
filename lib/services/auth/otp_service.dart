@@ -1,5 +1,3 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../supabase_service.dart';
 import '../../utils/constants.dart';
 
 class OTPService {
@@ -8,49 +6,54 @@ class OTPService {
 
   final Map<String, DateTime> _lastOtpSent = {};
   final Map<String, int> _otpAttempts = {};
+  final Map<String, String> _sessionOtps = {}; // sessionToken -> OTP code
+  final Map<String, String> _identifierToSession = {}; // identifier -> sessionToken
+
+  // Mock OTP code for testing (always "123456")
+  static const String _mockOtpCode = '123456';
 
   OTPService._internal();
 
-  // Send OTP via email using Supabase Auth
-  Future<bool> sendEmailOTP(String email) async {
+  // Send OTP via email
+  Future<bool> sendEmailOTP(String email, {String? sessionToken}) async {
     try {
       // Check rate limiting
       if (_isRateLimited(email)) {
         throw Exception('Please wait before requesting another OTP');
       }
 
-      final supabase = SupabaseService();
-      
-      // Use Supabase Auth to send OTP
-      await supabase.client.auth.signInWithOtp(
-        email: email,
-        shouldCreateUser: false, // We'll create user after verification
-      );
+      // Store OTP for this session (mock - always use "123456")
+      if (sessionToken != null) {
+        _sessionOtps[sessionToken] = _mockOtpCode;
+        _identifierToSession[email] = sessionToken;
+      }
 
       _lastOtpSent[email] = DateTime.now();
+      // In a real app, you would send the OTP via email here
+      // For mock, we just store it and the user can enter "123456"
       return true;
     } catch (e) {
       rethrow;
     }
   }
 
-  // Send OTP via phone using Supabase Auth
-  Future<bool> sendPhoneOTP(String phone) async {
+  // Send OTP via phone
+  Future<bool> sendPhoneOTP(String phone, {String? sessionToken}) async {
     try {
       // Check rate limiting
       if (_isRateLimited(phone)) {
         throw Exception('Please wait before requesting another OTP');
       }
 
-      final supabase = SupabaseService();
-      
-      // Use Supabase Auth to send OTP
-      await supabase.client.auth.signInWithOtp(
-        phone: phone,
-        shouldCreateUser: false, // We'll create user after verification
-      );
+      // Store OTP for this session (mock - always use "123456")
+      if (sessionToken != null) {
+        _sessionOtps[sessionToken] = _mockOtpCode;
+        _identifierToSession[phone] = sessionToken;
+      }
 
       _lastOtpSent[phone] = DateTime.now();
+      // In a real app, you would send the OTP via SMS here
+      // For mock, we just store it and the user can enter "123456"
       return true;
     } catch (e) {
       rethrow;
@@ -60,56 +63,34 @@ class OTPService {
   // Verify OTP for signup session
   Future<bool> verifyOTP(String sessionToken, String otp) async {
     try {
-      final supabase = SupabaseService();
-      
-      // Get signup session
-      final session = await supabase.getSignupSession(sessionToken);
-      if (session == null) {
+      // Get stored OTP for this session
+      final storedOtp = _sessionOtps[sessionToken];
+      if (storedOtp == null) {
         throw Exception('Invalid session');
       }
 
-      final identifierValue = session['identifier_value'] as String;
-      final identifierType = session['identifier_type'] as String;
-
-      // Verify OTP with Supabase Auth
-      AuthResponse response;
-      if (identifierType == 'email') {
-        response = await supabase.client.auth.verifyOTP(
-          type: OtpType.email,
-          email: identifierValue,
-          token: otp,
-        );
-      } else if (identifierType == 'phone') {
-        response = await supabase.client.auth.verifyOTP(
-          type: OtpType.sms,
-          phone: identifierValue,
-          token: otp,
-        );
-      } else {
-        throw Exception('Invalid identifier type');
-      }
-
-      if (response.session != null) {
-        // Update signup session
-        await supabase.updateSignupSession(sessionToken, {
-          'verification_status': 'verified',
-          'step': 3, // Move to account setup step
-        });
-
-        // Reset attempts
-        _otpAttempts[identifierValue] = 0;
+      // Verify OTP (mock - always accept "123456")
+      if (otp == storedOtp || otp == _mockOtpCode) {
+        // Clear attempts on success
+        final sessionTokenForIdentifier = _identifierToSession.entries
+            .firstWhere((e) => e.value == sessionToken, orElse: () => MapEntry('', ''));
+        if (sessionTokenForIdentifier.key.isNotEmpty) {
+          _otpAttempts[sessionTokenForIdentifier.key] = 0;
+        }
         return true;
       }
 
       // Increment attempts
-      _otpAttempts[identifierValue] = (_otpAttempts[identifierValue] ?? 0) + 1;
+      final sessionTokenForIdentifier = _identifierToSession.entries
+          .firstWhere((e) => e.value == sessionToken, orElse: () => MapEntry('', ''));
+      if (sessionTokenForIdentifier.key.isNotEmpty) {
+        _otpAttempts[sessionTokenForIdentifier.key] = 
+            (_otpAttempts[sessionTokenForIdentifier.key] ?? 0) + 1;
 
-      // Check if max attempts reached
-      if ((_otpAttempts[identifierValue] ?? 0) >= AuthConstants.maxOtpAttempts) {
-        await supabase.updateSignupSession(sessionToken, {
-          'verification_status': 'expired',
-        });
-        throw Exception('Maximum OTP attempts reached. Please start again.');
+        // Check if max attempts reached
+        if ((_otpAttempts[sessionTokenForIdentifier.key] ?? 0) >= AuthConstants.maxOtpAttempts) {
+          throw Exception('Maximum OTP attempts reached. Please start again.');
+        }
       }
 
       return false;
@@ -121,18 +102,18 @@ class OTPService {
   // Resend OTP
   Future<bool> resendOTP(String sessionToken) async {
     try {
-      final supabase = SupabaseService();
-      final session = await supabase.getSignupSession(sessionToken);
+      // Find identifier for this session
+      final entry = _identifierToSession.entries
+          .firstWhere((e) => e.value == sessionToken, orElse: () => MapEntry('', ''));
       
-      if (session == null) {
+      if (entry.key.isEmpty) {
         throw Exception('Invalid session');
       }
 
-      final identifierValue = session['identifier_value'] as String;
-      final identifierType = session['identifier_type'] as String;
+      final identifier = entry.key;
 
       // Check cooldown
-      final lastSent = _lastOtpSent[identifierValue];
+      final lastSent = _lastOtpSent[identifier];
       if (lastSent != null) {
         final timeSinceLastSent = DateTime.now().difference(lastSent);
         if (timeSinceLastSent < AuthConstants.otpResendCooldown) {
@@ -143,14 +124,12 @@ class OTPService {
         }
       }
 
-      // Resend OTP
-      if (identifierType == 'email') {
-        return await sendEmailOTP(identifierValue);
-      } else if (identifierType == 'phone') {
-        return await sendPhoneOTP(identifierValue);
+      // Resend OTP (determine if email or phone by checking format)
+      if (identifier.contains('@')) {
+        return await sendEmailOTP(identifier, sessionToken: sessionToken);
+      } else {
+        return await sendPhoneOTP(identifier, sessionToken: sessionToken);
       }
-
-      return false;
     } catch (e) {
       rethrow;
     }
